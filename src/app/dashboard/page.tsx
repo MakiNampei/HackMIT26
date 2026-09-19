@@ -1,9 +1,11 @@
 import { ArrowRight, CalendarCheck, FileCheck2, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
+import { connection } from "next/server";
 import { SessionCard } from "@/components/session-card";
 import { repository } from "@/lib/data/repository";
 
 export default async function DashboardPage() {
+  await connection();
   const sessions = await repository.listSessions();
 
   return (

@@ -236,6 +236,21 @@ grant execute on function public.create_session_with_creator(
 grant execute on function public.join_session(text, text) to authenticated, service_role;
 grant execute on function public.replace_availability(text, text, jsonb) to authenticated, service_role;
 
+-- Automatic Data API grants are disabled for this project, so privileges are
+-- declared explicitly and RLS remains the row-level authorization boundary.
+grant usage on schema public to authenticated, service_role;
+grant usage on type public.session_type, public.session_status to authenticated, service_role;
+grant select on public.profiles, public.courses, public.rooms,
+  public.academic_policies, public.sessions, public.session_members,
+  public.availability to authenticated;
+grant update on public.profiles to authenticated;
+grant insert, update on public.sessions to authenticated;
+grant insert on public.session_members to authenticated;
+grant insert, update, delete on public.availability to authenticated;
+grant all privileges on public.profiles, public.courses, public.rooms,
+  public.academic_policies, public.sessions, public.session_members,
+  public.availability to service_role;
+
 alter table public.profiles enable row level security;
 alter table public.courses enable row level security;
 alter table public.rooms enable row level security;
