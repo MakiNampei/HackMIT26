@@ -1,0 +1,18 @@
+import { CreateSessionForm } from "@/components/create-session-form";
+import { repository } from "@/lib/data/repository";
+
+export default async function NewSessionPage() {
+  const courses = await repository.listCourses();
+  return (
+    <>
+      <header className="page-header form-card">
+        <div>
+          <p className="eyebrow">Start with a goal</p>
+          <h1>Create a study session</h1>
+          <p className="subtle">Set the constraints now. StudySync will coordinate the people, policy, time, and room.</p>
+        </div>
+      </header>
+      <CreateSessionForm courses={courses} />
+    </>
+  );
+}
