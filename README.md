@@ -6,6 +6,8 @@ StudySync turns scattered course files into safe, actionable study sessions. It 
 
 ## What works in the framework
 
+- Real Supabase email/password registration, login, confirmation, persistent sessions, and logout.
+- Protected pages and APIs with server-verified identity.
 - Responsive dashboard and session cards.
 - Create, join, availability, session-detail, policy, room, and confirmation views.
 - Full API contract for sessions, joining, availability, best-time calculation, and policy analysis.
@@ -20,7 +22,7 @@ StudySync turns scattered course files into safe, actionable study sessions. It 
 corepack pnpm dev
 ```
 
-Open `http://localhost:3000`. The full mock demo works without external services or secrets.
+Open `http://localhost:3000/login`. Configure Supabase and apply both migrations following [the setup guide](./docs/SUPABASE.md) before registering real accounts.
 
 Dependencies are already installed in the current workspace. If `node_modules` is removed later, restore dependencies with the repository package manager:
 
@@ -32,7 +34,7 @@ To configure local environment values, copy `.env.example` to `.env.local`. Neve
 
 ## Team integration
 
-UI and API routes depend on the repository interface in `src/lib/data/contracts.ts`, not on Supabase directly. `DATA_BACKEND=mock` runs the zero-setup demo; `DATA_BACKEND=supabase` selects the persistent implementation without changing any page or API route.
+UI and API routes depend on the repository interface in `src/lib/data/contracts.ts`, not on Supabase directly. `DATA_BACKEND=mock` is retained for fixture-based development and tests; `DATA_BACKEND=supabase` selects the persistent implementation without changing any page or API route.
 
 Key documents:
 

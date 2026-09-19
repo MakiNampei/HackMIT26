@@ -1,9 +1,11 @@
+import { requireUser } from "@/lib/auth/server";
 import { CalendarCheck, Check, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { repository } from "@/lib/data/repository";
 
 export default async function ConfirmedPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireUser();
   const { id } = await params;
   const session = await repository.getSession(id);
   if (!session) notFound();

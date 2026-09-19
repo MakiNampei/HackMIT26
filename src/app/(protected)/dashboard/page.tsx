@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth/server";
 import { ArrowRight, CalendarCheck, FileCheck2, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -5,6 +6,7 @@ import { SessionCard } from "@/components/session-card";
 import { repository } from "@/lib/data/repository";
 
 export default async function DashboardPage() {
+  const user = await requireUser();
   await connection();
   const sessions = await repository.listSessions();
 
@@ -12,7 +14,7 @@ export default async function DashboardPage() {
     <>
       <section className="banner">
         <div>
-          <p className="eyebrow" style={{ color: "#f1ca72" }}>Good afternoon, Maki</p>
+          <p className="eyebrow" style={{ color: "#f1ca72" }}>Welcome, {user.user_metadata.display_name || "Student"}</p>
           <h1>Turn course chaos into a study plan.</h1>
           <p>StudySync reads collaboration rules, finds the right classmates, and coordinates a time and place.</p>
         </div>

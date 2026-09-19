@@ -1,16 +1,15 @@
+import { getUser } from "@/lib/auth/server";
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { repository } from "@/lib/data/repository";
 
-const joinSchema = z.object({ userId: z.string().min(1) });
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Please log in first" }, { status: 401 });
   const { id } = await params;
-  const parsed = joinSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid user" }, { status: 400 });
 
   try {
-    const session = await repository.joinSession(id, parsed.data.userId);
+    const session = await repository.joinSession(id, user.id);
     return NextResponse.json({ data: session });
   } catch {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });

@@ -1,0 +1,47 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+const mocks = vi.hoisted(() => ({ getUser: vi.fn(), getSession: vi.fn(), createSession: vi.fn(), joinSession: vi.fn(), submitAvailability: vi.fn() }));
+vi.mock('@/lib/auth/server', () => ({ getUser: mocks.getUser }));
+vi.mock('@/lib/data/repository', () => ({ repository: mocks }));
+import { POST as create } from '@/app/api/sessions/route';
+import { POST as join } from '@/app/api/sessions/[id]/join/route';
+import { POST as availability } from '@/app/api/sessions/[id]/availability/route';
+const request = (body: unknown) => new Request('http://localhost/api/sessions', { method: 'POST', body: JSON.stringify(body) });
+const params = { params: Promise.resolve({ id: 'session-1' }) };
+const input = { courseId: 'course-1', creatorId: 'impersonated-user', type: 'study', title: 'Study together', topic: 'Graphs', minPeople: 2, maxPeople: 4, durationMinutes: 60, proposedSlots: [{ start: '2026-09-22T20:00:00.000Z', end: '2026-09-22T21:00:00.000Z' }] };
+beforeEach(() => { vi.resetAllMocks(); });
+describe('authenticated session writes', () => {
+  it('rejects unauthenticated writes before touching storage', async () => {
+    mocks.getUser.mockResolvedValue(null);
+    expect((await create(request(input))).status).toBe(401);
+    expect((await join(request({}), params)).status).toBe(401);
+    expect((await availability(request({}), params)).status).toBe(401);
+    expect(mocks.createSession).not.toHaveBeenCalled();
+    expect(mocks.joinSession).not.toHaveBeenCalled();
+    expect(mocks.submitAvailability).not.toHaveBeenCalled();
+  });
+  it('overrides a forged creator with the verified account', async () => {
+    mocks.getUser.mockResolvedValue({ id: 'real-user' });
+    mocks.createSession.mockResolvedValue({ id: 'new-session' });
+    expect((await create(request(input))).status).toBe(201);
+    expect(mocks.createSession).toHaveBeenCalledWith(expect.objectContaining({ creatorId: 'real-user' }));
+  });
+  it('joins and saves availability only as the verified account', async () => {
+    mocks.getUser.mockResolvedValue({ id: 'real-user' });
+    await join(request({ userId: 'victim' }), params);
+    mocks.getSession.mockResolvedValue({ memberIds: ['real-user'] });
+    await availability(request({ userId: 'victim', slots: input.proposedSlots }), params);
+    expect(mocks.joinSession).toHaveBeenCalledWith('session-1', 'real-user');
+    expect(mocks.submitAvailability).toHaveBeenCalledWith('session-1', 'real-user', input.proposedSlots);
+  });
+  it('rejects availability from a non-member', async () => {
+    mocks.getUser.mockResolvedValue({ id: 'outsider' });
+    mocks.getSession.mockResolvedValue({ memberIds: ['member'] });
+    expect((await availability(request({ slots: input.proposedSlots }), params)).status).toBe(403);
+    expect(mocks.submitAvailability).not.toHaveBeenCalled();
+  });
+  it('rejects durations unsupported by the database', async () => {
+    mocks.getUser.mockResolvedValue({ id: 'real-user' });
+    expect((await create(request({ ...input, durationMinutes: 31 }))).status).toBe(400);
+    expect(mocks.createSession).not.toHaveBeenCalled();
+  });
+});

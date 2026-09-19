@@ -1,22 +1,18 @@
 import {
   BookOpen,
-  CalendarDays,
   LayoutDashboard,
   PlusCircle,
-  Sparkles,
-  Users,
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { logout } from "@/app/auth/actions";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/sessions/new", label: "Create session", icon: PlusCircle },
-  { href: "/sessions/demo-session-1", label: "My session", icon: Users },
-  { href: "/sessions/demo-session-1/availability", label: "Availability", icon: CalendarDays },
 ];
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, name }: { children: ReactNode; name: string }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -33,13 +29,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="user-chip">
-          <span className="avatar">MK</span>
+          <span className="avatar">{name.slice(0, 2).toUpperCase()}</span>
           <span>
-            <strong>Maki</strong><br />
-            <small style={{ opacity: 0.65 }}>Demo student</small>
+            <strong>{name}</strong><br />
+            <small style={{ opacity: 0.65 }}>Student</small>
           </span>
-          <Sparkles size={16} style={{ marginLeft: "auto" }} />
+
         </div>
+        <form action={logout}><button type="submit" className="logout-button">Log out</button></form>
       </aside>
       <main className="main">{children}</main>
     </div>

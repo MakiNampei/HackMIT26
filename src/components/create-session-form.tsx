@@ -20,7 +20,6 @@ export function CreateSessionForm({ courses }: { courses: Course[] }) {
     const end = String(form.get("end"));
     const payload = {
       courseId: form.get("courseId"),
-      creatorId: "user-maki",
       type: form.get("type"),
       title: form.get("title"),
       topic: form.get("topic"),
@@ -113,7 +112,7 @@ export function CreateSessionForm({ courses }: { courses: Course[] }) {
       </div>
       {error && <p className="error" role="alert" style={{ marginTop: "1rem" }}>{error}</p>}
       <div className="row-between" style={{ marginTop: "1.25rem" }}>
-        <span className="subtle" style={{ fontSize: "0.8rem" }}>Demo user: Maki</span>
+        <span className="subtle" style={{ fontSize: "0.8rem" }}>Your account is used securely</span>
         <button disabled={pending} type="submit">{pending ? "Creating..." : "Create session"}</button>
       </div>
     </form>

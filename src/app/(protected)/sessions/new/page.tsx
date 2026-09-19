@@ -1,8 +1,10 @@
+import { requireUser } from "@/lib/auth/server";
 import { CreateSessionForm } from "@/components/create-session-form";
 import { repository } from "@/lib/data/repository";
 import { connection } from "next/server";
 
 export default async function NewSessionPage() {
+  await requireUser();
   await connection();
   const courses = await repository.listCourses();
   return (

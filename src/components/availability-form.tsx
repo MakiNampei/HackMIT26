@@ -16,7 +16,6 @@ export function AvailabilityForm({ sessionId }: { sessionId: string }) {
 
     try {
       const payload = {
-        userId: "user-maki",
         slots: [
           {
             start: new Date(`${form.get("date")}T${form.get("start")}:00`).toISOString(),

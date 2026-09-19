@@ -18,7 +18,7 @@ export const createSessionSchema = z
     topic: z.string().min(2).max(160),
     minPeople: z.coerce.number().int().min(2).max(12),
     maxPeople: z.coerce.number().int().min(2).max(20),
-    durationMinutes: z.coerce.number().int().min(30).max(240),
+    durationMinutes: z.coerce.number().int().min(30).max(240).multipleOf(15),
     proposedSlots: z.array(availabilitySlotSchema).min(1),
   })
   .refine((session) => session.maxPeople >= session.minPeople, {

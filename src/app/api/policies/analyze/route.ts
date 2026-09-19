@@ -1,8 +1,11 @@
+import { getUser } from "@/lib/auth/server";
 import { NextResponse } from "next/server";
 import { policyAnalysisRequestSchema } from "@/lib/domain/schemas";
 import { analyzePolicy } from "@/lib/services/policy";
 
 export async function POST(request: Request) {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Please log in first" }, { status: 401 });
   const parsed = policyAnalysisRequestSchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid policy source", issues: parsed.error.flatten() }, { status: 400 });

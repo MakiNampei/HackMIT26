@@ -20,6 +20,14 @@ describe("calculateBestOverlap", () => {
     });
   });
 
+  it("handles distant windows without scanning every intervening quarter hour", () => {
+    const result = calculateBestOverlap({
+      a: [{ start: "2026-09-22T20:00:00.000Z", end: "2026-09-22T21:00:00.000Z" }],
+      b: [{ start: "9999-09-22T20:00:00.000Z", end: "9999-09-22T21:00:00.000Z" }],
+    }, 60, 2);
+    expect(result).toBeNull();
+  });
+
   it("returns null without availability", () => {
     expect(calculateBestOverlap({}, 60)).toBeNull();
   });

@@ -16,11 +16,12 @@ export function calculateBestOverlap(
     .filter((slot) => Number.isFinite(slot.start) && Number.isFinite(slot.end));
   if (validSlots.length === 0) return null;
 
-  let cursor = Math.ceil(Math.min(...validSlots.map((slot) => slot.start)) / quarterHourMs) * quarterHourMs;
-  const lastStart = Math.max(...validSlots.map((slot) => slot.end)) - durationMs;
+  // Attendance can only improve when a new availability window starts.
+  // Evaluate those boundaries instead of iterating through potentially years of empty time.
+  const candidates = [...new Set(validSlots.map((slot) => Math.ceil(slot.start / quarterHourMs) * quarterHourMs))].sort((a, b) => a - b);
   let best: { start: number; end: number; availableCount: number } | null = null;
 
-  while (cursor <= lastStart) {
+  for (const cursor of candidates) {
     const end = cursor + durationMs;
     const availableCount = users.filter((userId) =>
       availabilityByUser[userId].some((slot) => {
@@ -33,7 +34,6 @@ export function calculateBestOverlap(
     if (availableCount >= minimumPeople && (!best || availableCount > best.availableCount)) {
       best = { start: cursor, end, availableCount };
     }
-    cursor += quarterHourMs;
   }
 
   if (!best) return null;

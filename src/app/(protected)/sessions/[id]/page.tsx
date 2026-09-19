@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth/server";
 import { Check, Clock3, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,6 +9,7 @@ import { repository } from "@/lib/data/repository";
 const steps = ["Group formed", "Time matched", "Policy verified", "Room selected", "Confirmed"];
 
 export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireUser();
   const { id } = await params;
   const session = await repository.getSession(id);
   if (!session) notFound();

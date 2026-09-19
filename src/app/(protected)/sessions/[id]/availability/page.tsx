@@ -1,8 +1,10 @@
+import { requireUser } from "@/lib/auth/server";
 import { notFound } from "next/navigation";
 import { AvailabilityForm } from "@/components/availability-form";
 import { repository } from "@/lib/data/repository";
 
 export default async function AvailabilityPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireUser();
   const { id } = await params;
   const session = await repository.getSession(id);
   if (!session) notFound();

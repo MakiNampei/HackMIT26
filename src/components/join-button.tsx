@@ -10,7 +10,7 @@ export function JoinButton({ sessionId }: { sessionId: string }) {
     const response = await fetch(`/api/sessions/${sessionId}/join`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: "user-maki" }),
+      body: JSON.stringify({}),
     });
     setState(response.ok ? "joined" : "error");
   }
