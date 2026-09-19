@@ -3,26 +3,31 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function JoinButton({ sessionId }: { sessionId: string }) {
+export function JoinButton({ sessionId, isMember = false }: { sessionId: string; isMember?: boolean }) {
   const router = useRouter();
-  const [state, setState] = useState<"idle" | "pending" | "joined" | "error">("idle");
+  const [state, setState] = useState<"idle" | "pending" | "done" | "error">("idle");
 
-  async function join() {
+  async function updateMembership() {
     setState("pending");
     try {
-    const response = await fetch(`/api/sessions/${sessionId}/join`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    setState(response.ok ? "joined" : "error");
-    if (response.ok) router.refresh();
-    } catch { setState("error"); }
+      const response = await fetch(`/api/sessions/${sessionId}/${isMember ? "leave" : "join"}`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Membership update failed");
+      setState("done");
+      if (isMember) router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setState("error");
+    }
   }
 
   return (
-    <button disabled={state === "pending" || state === "joined"} onClick={join} type="button">
-      {state === "pending" ? "Joining..." : state === "joined" ? "Joined" : state === "error" ? "Try again" : "Join session"}
-    </button>
+    <div>
+      <button className={isMember ? "secondary" : undefined} disabled={state === "pending" || state === "done"} onClick={updateMembership} type="button">
+        {state === "pending" ? (isMember ? "Leaving..." : "Joining...") : state === "done" ? (isMember ? "Left session" : "Joined") : isMember ? "Leave session" : "Join session"}
+      </button>
+      {state === "error" && <p role="alert" className="subtle">Could not {isMember ? "leave" : "join"} session. Please try again.</p>}
+    </div>
   );
 }

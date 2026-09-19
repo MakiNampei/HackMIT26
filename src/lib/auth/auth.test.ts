@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ getUser: vi.fn(), getSession: vi.fn(), createSession: vi.fn(), joinSession: vi.fn(), submitAvailability: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getUser: vi.fn(), getSession: vi.fn(), createSession: vi.fn(), joinSession: vi.fn(), leaveSession: vi.fn(), submitAvailability: vi.fn() }));
 vi.mock('@/lib/auth/server', () => ({ getUser: mocks.getUser }));
 vi.mock('@/lib/data/repository', () => ({ repository: mocks }));
 import { POST as create } from '@/app/api/sessions/route';
+import { POST as leave } from '@/app/api/sessions/[id]/leave/route';
 import { POST as join } from '@/app/api/sessions/[id]/join/route';
 import { POST as availability } from '@/app/api/sessions/[id]/availability/route';
 const request = (body: unknown) => new Request('http://localhost/api/sessions', { method: 'POST', body: JSON.stringify(body) });
@@ -15,6 +16,8 @@ describe('authenticated session writes', () => {
     expect((await create(request(input))).status).toBe(401);
     expect((await join(request({}), params)).status).toBe(401);
     expect((await availability(request({}), params)).status).toBe(401);
+    expect((await leave(request({}), params)).status).toBe(401);
+    expect(mocks.leaveSession).not.toHaveBeenCalled();
     expect(mocks.createSession).not.toHaveBeenCalled();
     expect(mocks.joinSession).not.toHaveBeenCalled();
     expect(mocks.submitAvailability).not.toHaveBeenCalled();
@@ -44,4 +47,17 @@ describe('authenticated session writes', () => {
     expect((await create(request({ ...input, durationMinutes: 31 }))).status).toBe(400);
     expect(mocks.createSession).not.toHaveBeenCalled();
   });
+});
+
+it('leaves only as the verified account, ignoring forged user IDs', async () => {
+  mocks.getUser.mockResolvedValue({ id: 'real-user' });
+  mocks.getSession.mockResolvedValue({ id: 'session-1' });
+  expect((await leave(request({ userId: 'victim' }), params)).status).toBe(200);
+  expect(mocks.leaveSession).toHaveBeenCalledWith('session-1', 'real-user');
+});
+it('reports a failed leave without claiming success', async () => {
+  mocks.getUser.mockResolvedValue({ id: 'real-user' });
+  mocks.getSession.mockResolvedValue({ id: 'session-1' });
+  mocks.leaveSession.mockRejectedValue(new Error('Storage unavailable'));
+  expect((await leave(request({}), params)).status).toBe(500);
 });

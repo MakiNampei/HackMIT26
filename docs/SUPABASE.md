@@ -6,7 +6,7 @@ The persistent backend implements the same `StudySyncRepository` contract as the
 
 1. Create a Supabase project.
 2. Run `supabase/migrations/202609190001_initial_schema.sql` in the SQL editor.
-3. Run `supabase/migrations/202609190002_auth_profiles_and_permissions.sql`, then `supabase/seed.sql` in the SQL editor.
+3. Run `supabase/migrations/202609190002_auth_profiles_and_permissions.sql`, then `supabase/migrations/202609190003_leave_session.sql`, followed by `supabase/seed.sql` in the SQL editor.
 4. Copy `.env.example` to `.env.local` and set:
 
 ```dotenv
@@ -25,6 +25,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
 
 - `create_session_with_creator` creates a session and creator membership atomically.
 - `join_session` locks the session row and enforces room capacity during concurrent joins.
+- `leave_session` removes membership and availability atomically; groups below their minimum reopen and clear their confirmed time and room. Creators can leave while retaining historical creator attribution.
 - `replace_availability` replaces one member's windows in one transaction.
 - Best-time calculation runs deterministically in TypeScript after reading persisted windows.
 - Room recommendations use capacity first and then choose the nearest suitable room.
@@ -40,7 +41,7 @@ Set `DATA_BACKEND=mock` or remove the variable. The mock path needs no external 
 - `/register` creates an email/password account; `/login` signs in; Log out revokes the session. Protected pages and all data APIs require verified authentication.
 - Enable Email in Supabase Authentication and set Site URL to the deployed app URL (locally `http://localhost:3000`). Keep email confirmation enabled. The default confirmation email verifies the email; users can then return to `/login`.
 - Optionally use `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email` as the confirmation email link to sign in immediately after verification.
-- Apply both migrations before using real accounts. Existing Auth users receive profiles during migration. Never paste service-role keys into chat or commit `.env.local`.
+- Apply all migrations before using real accounts. Existing Auth users receive profiles during migration. Never paste service-role keys into chat or commit `.env.local`.
 - Use `DATA_BACKEND=supabase` for real account data. Mock storage is only for seeded fixtures and service tests; it is not a persistence option for real accounts.
 
 ## Verification checklist

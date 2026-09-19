@@ -195,6 +195,18 @@ export const mockRepository: StudySyncRepository = {
     return session;
   },
 
+  async leaveSession(sessionId, userId) {
+    const session = sessions.find((item) => item.id === sessionId);
+    if (!session) throw new Error("Session not found");
+    session.memberIds = session.memberIds.filter((id) => id !== userId);
+    delete availability[sessionId]?.[userId];
+    if (session.memberIds.length < session.minPeople) {
+      session.status = "open";
+      session.confirmedSlot = undefined;
+      session.roomId = undefined;
+    }
+  },
+
   async submitAvailability(sessionId, userId, slots) {
     availability[sessionId] ??= {};
     availability[sessionId][userId] = slots;

@@ -24,7 +24,7 @@ StudySync turns scattered course files into safe, actionable study sessions. It 
 corepack pnpm dev
 ```
 
-Open `http://localhost:3000/login`. Configure Supabase and apply both migrations following [the setup guide](./docs/SUPABASE.md) before registering real accounts.
+Open `http://localhost:3000/login`. Configure Supabase and apply all migrations following [the setup guide](./docs/SUPABASE.md) before registering real accounts.
 
 Dependencies are already installed in the current workspace. If `node_modules` is removed later, restore dependencies with the repository package manager:
 

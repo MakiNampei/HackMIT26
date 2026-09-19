@@ -19,6 +19,7 @@ export interface StudySyncRepository {
   getSession(id: string): Promise<SessionWithDetails | null>;
   createSession(input: CreateSessionInput): Promise<Session>;
   joinSession(sessionId: string, userId: string): Promise<Session>;
+  leaveSession(sessionId: string, userId: string): Promise<void>;
   submitAvailability(
     sessionId: string,
     userId: string,

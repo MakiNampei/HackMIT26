@@ -9,7 +9,7 @@ import { repository } from "@/lib/data/repository";
 const steps = ["Group formed", "Time matched", "Policy verified", "Room selected", "Confirmed"];
 
 export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireUser();
+  const user = await requireUser();
   const { id } = await params;
   const session = await repository.getSession(id);
   if (!session) notFound();
@@ -24,7 +24,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           <h1>{session.title}</h1>
           <p className="subtle">{session.topic}</p>
         </div>
-        <JoinButton sessionId={session.id} />
+        <JoinButton key={String(session.memberIds.includes(user.id))} sessionId={session.id} isMember={session.memberIds.includes(user.id)} />
       </header>
 
       <div className="detail-layout">
@@ -46,7 +46,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
               <div className="avatars">
                 {session.members.map((member) => <span className="avatar" key={member.id} title={member.name}>{member.initials}</span>)}
               </div>
-              <Link className="button secondary" href={`/sessions/${session.id}/availability`}>Edit availability</Link>
+              {session.memberIds.includes(user.id) && <Link className="button secondary" href={`/sessions/${session.id}/availability`}>Edit availability</Link>}
             </div>
           </section>
           {session.policy && <PolicyCard policy={session.policy} />}

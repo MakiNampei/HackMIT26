@@ -183,6 +183,14 @@ async function joinSession(sessionId: string, userId: string): Promise<Session> 
   };
 }
 
+async function leaveSession(sessionId: string, userId: string): Promise<void> {
+  const { error } = await getSupabaseServerClient().rpc("leave_session", {
+    p_session_id: sessionId,
+    p_user_id: userId,
+  });
+  if (error) fail("Could not leave session", error);
+}
+
 async function submitAvailability(
   sessionId: string,
   userId: string,
@@ -230,6 +238,7 @@ export const supabaseRepository: StudySyncRepository = {
   getSession,
   createSession,
   joinSession,
+  leaveSession,
   submitAvailability,
   calculateBestTime,
 };
