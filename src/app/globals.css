@@ -550,10 +550,11 @@ button:disabled { opacity: .6; cursor: wait; transform: none; }
 @media (max-width: 760px) { .auth-page { grid-template-columns: 1fr; } .auth-story { padding: 1.5rem; gap: 2rem; } .auth-story h1 { font-size: 2.5rem; } .auth-story small, .auth-benefits { display: none; } .auth-intro { margin-bottom: 0; } .auth-panel { padding: 2.5rem 1.5rem; } }
 
 .courses-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 2rem; align-items: start; }
+.courses-layout > section { min-width: 0; }
 .course-create { position: sticky; top: 1.5rem; }
-.course-tile { display: flex; flex-direction: column; gap: .8rem; transition: border-color .2s, transform .2s; }
+.course-tile { display: flex; flex-direction: column; gap: .8rem; min-width: 0; transition: border-color .2s, transform .2s; }
 .course-tile:hover { border-color: var(--green); transform: translateY(-2px); }
-.course-tile h2, .course-tile p { margin: 0; }
+.course-tile h2, .course-tile p, .course-tile .course-code { margin: 0; max-width: 100%; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
 .course-open { display: flex; align-items: center; justify-content: space-between; color: var(--green); font-weight: 700; border-top: 1px solid var(--line); padding-top: 1rem; margin-top: auto; }
 .material-upload { display: grid; gap: 1.2rem; padding: clamp(1.2rem, 3vw, 2rem); }
 .material-upload > .field { max-width: 320px; }
