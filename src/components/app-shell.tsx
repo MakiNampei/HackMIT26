@@ -9,6 +9,7 @@ import { logout } from "@/app/auth/actions";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/courses", label: "Courses", icon: BookOpen },
   { href: "/sessions/new", label: "Create session", icon: PlusCircle },
 ];
 
@@ -22,7 +23,7 @@ export function AppShell({ children, name }: { children: ReactNode; name: string
         </Link>
         <nav className="nav-list" aria-label="Primary navigation">
           {navigation.map(({ href, label, icon: Icon }, index) => (
-            <Link className={`nav-link ${index === 0 ? "active" : ""}`} href={href} key={href}>
+            <Link className={`nav-link ${index === 0 ? "active" : ""}`} href={href} key={href} aria-label={label}>
               <Icon size={18} />
               <span>{label}</span>
             </Link>

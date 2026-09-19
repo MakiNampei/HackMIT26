@@ -548,3 +548,29 @@ h2 {
 button:disabled { opacity: .6; cursor: wait; transform: none; }
 .logout-button { width: 100%; background: rgba(255,255,255,.1); }
 @media (max-width: 760px) { .auth-page { grid-template-columns: 1fr; } .auth-story { padding: 1.5rem; gap: 2rem; } .auth-story h1 { font-size: 2.5rem; } .auth-story small, .auth-benefits { display: none; } .auth-intro { margin-bottom: 0; } .auth-panel { padding: 2.5rem 1.5rem; } }
+
+.courses-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 2rem; align-items: start; }
+.course-create { position: sticky; top: 1.5rem; }
+.course-tile { display: flex; flex-direction: column; gap: .8rem; transition: border-color .2s, transform .2s; }
+.course-tile:hover { border-color: var(--green); transform: translateY(-2px); }
+.course-tile h2, .course-tile p { margin: 0; }
+.course-open { display: flex; align-items: center; justify-content: space-between; color: var(--green); font-weight: 700; border-top: 1px solid var(--line); padding-top: 1rem; margin-top: auto; }
+.material-upload { display: grid; gap: 1.2rem; padding: clamp(1.2rem, 3vw, 2rem); }
+.material-upload > .field { max-width: 320px; }
+.upload-zone { border: 1px dashed #82ac94; border-radius: 16px; background: #f3f8f3; display: grid; justify-items: center; gap: .8rem; padding: 1.8rem; text-align: center; }
+.upload-zone .field { max-width: 100%; }
+.upload-zone input { max-width: 100%; }
+.upload-zone p { margin: 0; font-size: .85rem; }
+.dropbox-import { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.dropbox-import p { margin: 0; font-size: .85rem; flex: 1; min-width: 200px; }
+.empty-library { text-align: center; padding: 3rem; }
+.empty-library svg { color: var(--green); margin-bottom: 1rem; }
+.material-card { padding: clamp(1.2rem, 3vw, 2rem); overflow-wrap: anywhere; }
+.material-card > .row-between { align-items: start; flex-wrap: wrap; }
+.material-finding { padding: 1rem 0; border-top: 1px solid var(--line); }
+.material-finding p { line-height: 1.5; margin: .5rem 0; }
+.source-quote { margin: .8rem 0; border-left: 3px solid #8daf9a; padding-left: .8rem; font-size: .84rem; color: var(--muted); line-height: 1.55; }
+.material-next { background: var(--green-soft); border-radius: 14px; padding: 1.2rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1.5rem; }
+.material-next p:last-child { margin: .5rem 0 0; }
+@media(max-width:1100px) { .courses-layout { grid-template-columns: 1fr; } .course-create { position: static; } }
+@media(max-width:640px) { .material-next { flex-direction: column; align-items: stretch; } .upload-zone { padding: 1rem; } }

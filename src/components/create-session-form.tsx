@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import type { Course } from "@/lib/domain/types";
 
-export function CreateSessionForm({ courses }: { courses: Course[] }) {
+export function CreateSessionForm({ courses, initial }: { courses: Course[]; initial?: { courseId?: string; title?: string; topic?: string; type?: string; sourceName?: string; rules?: string } }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -53,18 +54,20 @@ export function CreateSessionForm({ courses }: { courses: Course[] }) {
 
   return (
     <form className="card form-card" onSubmit={submit}>
+      {initial?.sourceName && <div className="notice" style={{ marginBottom: "1rem" }}><strong>Draft from {initial.sourceName}</strong><p>{initial.rules}</p><small>Review the original document and confirm your plan. This is not instructor approval.</small></div>}
       <div className="form-grid">
         <div className="field">
           <label htmlFor="courseId">Course</label>
-          <select id="courseId" name="courseId" required>
+          <select id="courseId" name="courseId" defaultValue={initial?.courseId} required>
             {courses.map((course) => (
               <option key={course.id} value={course.id}>{course.code} - {course.name}</option>
             ))}
           </select>
+          <Link className="subtle" href="/courses">+ Add a course or upload materials</Link>
         </div>
         <div className="field">
           <label htmlFor="type">Session type</label>
-          <select id="type" name="type" defaultValue="assignment">
+          <select id="type" name="type" defaultValue={initial?.type ?? "assignment"}>
             <option value="study">Study</option>
             <option value="exam_review">Exam review</option>
             <option value="assignment">Assignment</option>
@@ -72,11 +75,11 @@ export function CreateSessionForm({ courses }: { courses: Course[] }) {
         </div>
         <div className="field full">
           <label htmlFor="title">Session title</label>
-          <input id="title" name="title" defaultValue="Homework 4 study group" required />
+          <input id="title" name="title" defaultValue={initial?.title ?? ""} placeholder="e.g. Midterm review group" required />
         </div>
         <div className="field full">
           <label htmlFor="topic">What do you want to work on?</label>
-          <textarea id="topic" name="topic" defaultValue="Dynamic programming: recurrence design and practice problems" required />
+          <textarea id="topic" name="topic" defaultValue={initial?.topic ?? ""} placeholder="What would you like to study together?" required />
         </div>
         <div className="field">
           <label htmlFor="minPeople">Minimum students</label>

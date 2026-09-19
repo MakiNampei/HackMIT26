@@ -8,6 +8,8 @@ StudySync turns scattered course files into safe, actionable study sessions. It 
 
 - Real Supabase email/password registration, login, confirmation, persistent sessions, and logout.
 - Protected pages and APIs with server-verified identity.
+- Course creation, private PDF/text uploads, real AI material analysis with source quotes, and study-session drafts.
+- Dropbox Chooser import integration (requires a Dropbox app key).
 - Responsive dashboard and session cards.
 - Create, join, availability, session-detail, policy, room, and confirmation views.
 - Full API contract for sessions, joining, availability, best-time calculation, and policy analysis.
@@ -41,6 +43,7 @@ Key documents:
 - [Project plan and TODO](./PROJECT_PLAN.md)
 - [Full-stack ownership and database handoff](./docs/FULLSTACK_OWNERSHIP.md)
 - [Supabase setup and architecture](./docs/SUPABASE.md)
+- [Course materials and Dropbox setup](./docs/COURSE_MATERIALS.md)
 
 ## Current status
 
