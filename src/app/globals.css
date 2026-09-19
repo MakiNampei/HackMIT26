@@ -366,6 +366,7 @@ h2 {
 }
 
 .field {
+  align-content: start;
   display: grid;
   gap: 0.45rem;
 }
