@@ -28,7 +28,7 @@ This is the implementation boundary agreed with the database/backend teammate. T
 
 ## Shared contract
 
-Both sides code against `src/lib/data/contracts.ts`. Your UI and API routes must not call Supabase directly. The teammate should implement the `StudySyncRepository` interface and replace the export in `src/lib/data/repository.ts`.
+Both sides code against `src/lib/data/contracts.ts`. UI and API routes do not call Supabase directly. The Supabase implementation now satisfies the same interface, and `src/lib/data/repository.ts` selects it with `DATA_BACKEND=supabase`.
 
 In mock mode, a successful create request navigates to the stable seeded demo because Route Handlers and Server Components do not share durable in-memory state. Once Supabase is connected, set `DATA_BACKEND=supabase`; the API will navigate to the newly persisted session ID.
 
@@ -64,8 +64,8 @@ Dashboard
 - [x] Repository interface exists.
 - [x] Mock repository unblocks UI work.
 - [x] Frontend pages call stable API routes.
-- [ ] Teammate adds `supabase-repository.ts`.
+- [x] Teammate adds `supabase-repository.ts`.
 - [ ] Add Supabase environment variables locally.
-- [ ] Swap the repository provider.
+- [x] Swap the repository provider through `DATA_BACKEND`.
 - [ ] Run API contract tests against Supabase.
 - [ ] Verify the full demo after a cold restart.

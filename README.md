@@ -10,13 +10,14 @@ StudySync turns scattered course files into safe, actionable study sessions. It 
 - Create, join, availability, session-detail, policy, room, and confirmation views.
 - Full API contract for sessions, joining, availability, best-time calculation, and policy analysis.
 - Mock repository and seeded demo data so frontend and database work can happen in parallel.
+- Supabase/Postgres repository, migration, seed data, transactional RPCs, and Row Level Security.
 - Deterministic matching and availability utilities with tests.
 - OpenAI Responses API adapter with Structured Outputs, disabled by default in demo mode.
 
 ## Run locally
 
 ```bash
-npm run dev
+corepack pnpm dev
 ```
 
 Open `http://localhost:3000`. The full mock demo works without external services or secrets.
@@ -31,12 +32,13 @@ To configure local environment values, copy `.env.example` to `.env.local`. Neve
 
 ## Team integration
 
-UI and API routes depend on the repository interface in `src/lib/data/contracts.ts`, not on Supabase directly. The database teammate can implement that interface and change the single export in `src/lib/data/repository.ts`.
+UI and API routes depend on the repository interface in `src/lib/data/contracts.ts`, not on Supabase directly. `DATA_BACKEND=mock` runs the zero-setup demo; `DATA_BACKEND=supabase` selects the persistent implementation without changing any page or API route.
 
 Key documents:
 
 - [Project plan and TODO](./PROJECT_PLAN.md)
 - [Full-stack ownership and database handoff](./docs/FULLSTACK_OWNERSHIP.md)
+- [Supabase setup and architecture](./docs/SUPABASE.md)
 
 ## Current status
 
@@ -47,3 +49,4 @@ Key documents:
 - [x] Mock full-stack flow and API boundaries
 - [x] Database handoff contract
 - [x] Working mock end-to-end demo
+- [x] Supabase schema, seed data, repository, transactional writes, and RLS

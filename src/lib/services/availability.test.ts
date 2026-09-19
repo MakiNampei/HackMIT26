@@ -23,4 +23,14 @@ describe("calculateBestOverlap", () => {
   it("returns null without availability", () => {
     expect(calculateBestOverlap({}, 60)).toBeNull();
   });
+
+  it("uses a 15-minute grid and enforces the minimum group size", () => {
+    const availability = {
+      a: [{ start: "2026-09-22T22:07:00.000Z", end: "2026-09-22T23:45:00.000Z" }],
+      b: [{ start: "2026-09-22T22:15:00.000Z", end: "2026-09-22T23:30:00.000Z" }],
+    };
+
+    expect(calculateBestOverlap(availability, 60, 2)?.start).toBe("2026-09-22T22:15:00.000Z");
+    expect(calculateBestOverlap(availability, 60, 3)).toBeNull();
+  });
 });

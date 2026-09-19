@@ -203,6 +203,10 @@ export const mockRepository: StudySyncRepository = {
   async calculateBestTime(sessionId) {
     const session = sessions.find((item) => item.id === sessionId);
     if (!session) return null;
-    return calculateBestOverlap(availability[sessionId] ?? {}, session.durationMinutes);
+    return calculateBestOverlap(
+      availability[sessionId] ?? {},
+      session.durationMinutes,
+      session.minPeople,
+    );
   },
 };
