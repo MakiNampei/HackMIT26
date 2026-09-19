@@ -2,11 +2,12 @@
 import Link from 'next/link';
 import { useActionState } from 'react';
 import { BookOpen, ArrowRight, Users, CalendarCheck, ShieldCheck } from 'lucide-react';
-import { authenticate } from '@/app/auth/actions';
+import { authenticate, resendConfirmation } from '@/app/auth/actions';
 
 export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   const register = mode === 'register';
   const [state, action, pending] = useActionState(authenticate.bind(null, mode), {});
+  const [resendState, resendAction, resendPending] = useActionState(resendConfirmation, {});
   return <main className="auth-page">
     <section className="auth-story">
       <Link href="/login" className="brand"><span className="brand-mark"><BookOpen size={22} /></span>StudySync</Link>
@@ -25,6 +26,15 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
         {state.message && <p className="notice" role="status">{state.message}</p>}
         <button disabled={pending} type="submit">{pending ? 'Please wait…' : register ? 'Create account' : 'Log in'}<ArrowRight size={18} /></button>
       </form>
+      {!register && <form action={resendAction} className="auth-resend-form">
+        <label htmlFor="resend-email">Registered but not confirmed?</label>
+        <div className="auth-resend-row">
+          <input id="resend-email" name="email" type="email" autoComplete="email" placeholder="you@university.edu" required />
+          <button className="secondary" disabled={resendPending} type="submit">{resendPending ? 'Sending…' : 'Resend email'}</button>
+        </div>
+        {resendState.error && <p className="error" role="alert">{resendState.error}</p>}
+        {resendState.message && <p className="notice" role="status">{resendState.message}</p>}
+      </form>}
       <p className="auth-switch">{register ? 'Already have an account?' : 'New to StudySync?'} <Link href={register ? '/login' : '/register'}>{register ? 'Log in' : 'Create an account'}</Link></p>
     </div></section>
   </main>;

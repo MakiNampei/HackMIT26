@@ -41,6 +41,8 @@ Set `DATA_BACKEND=mock` or remove the variable. The mock path needs no external 
 - `/register` creates an email/password account; `/login` signs in; Log out revokes the session. Protected pages and all data APIs require verified authentication.
 - Enable Email in Supabase Authentication and set Site URL to the deployed app URL (locally `http://localhost:3000`). Keep email confirmation enabled. The default confirmation email verifies the email; users can then return to `/login`.
 - Optionally use `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email` as the confirmation email link to sign in immediately after verification.
+- If you use Resend's `onboarding@resend.dev` test sender, Resend only delivers to the email address that owns the Resend account. A signup for any other address fails and Supabase rolls the Auth user back. Verify a domain in Resend and use a sender on that domain before testing with classmates or alternate email addresses.
+- The login page includes a resend-confirmation form for accounts that exist but are still unconfirmed. A failed signup whose confirmation email could not be sent does not create a usable account; retry registration after fixing SMTP.
 - Apply all migrations before using real accounts. Existing Auth users receive profiles during migration. Never paste service-role keys into chat or commit `.env.local`.
 - Use `DATA_BACKEND=supabase` for real account data. Mock storage is only for seeded fixtures and service tests; it is not a persistence option for real accounts.
 
