@@ -1,10 +1,11 @@
 import { requireUser } from "@/lib/auth/server";
 import { notFound } from "next/navigation";
+import { JoinButton } from "@/components/join-button";
 import { AvailabilityForm } from "@/components/availability-form";
 import { repository } from "@/lib/data/repository";
 
 export default async function AvailabilityPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireUser();
+  const user = await requireUser();
   const { id } = await params;
   const session = await repository.getSession(id);
   if (!session) notFound();
@@ -18,7 +19,13 @@ export default async function AvailabilityPage({ params }: { params: Promise<{ i
           <p className="subtle">Share a window; the scheduling service will find the strongest overlap.</p>
         </div>
       </header>
-      <AvailabilityForm sessionId={session.id} />
+      {session.memberIds.includes(user.id) ? <AvailabilityForm sessionId={session.id} /> : (
+        <section className="card">
+          <h2>Join this session first</h2>
+          <p className="subtle">You need to join this study group before sharing your availability.</p>
+          <JoinButton sessionId={session.id} />
+        </section>
+      )}
     </>
   );
 }

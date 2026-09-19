@@ -6,20 +6,28 @@ import type { BestTimeResult } from "@/lib/domain/types";
 export function AvailabilityForm({ sessionId }: { sessionId: string }) {
   const [result, setResult] = useState<BestTimeResult | null>(null);
   const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     setError("");
+    setResult(null);
+    setSaved(false);
     const form = new FormData(event.currentTarget);
 
     try {
+      const start = new Date(`${form.get("date")}T${form.get("start")}:00`);
+      const end = new Date(`${form.get("date")}T${form.get("end")}:00`);
+      if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
+        throw new Error("Choose an end time later than the start time.");
+      }
       const payload = {
         slots: [
           {
-            start: new Date(`${form.get("date")}T${form.get("start")}:00`).toISOString(),
-            end: new Date(`${form.get("date")}T${form.get("end")}:00`).toISOString(),
+            start: start.toISOString(),
+            end: end.toISOString(),
           },
         ],
       };
@@ -28,11 +36,14 @@ export function AvailabilityForm({ sessionId }: { sessionId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!save.ok) throw new Error("Could not save availability");
+      const saveBody = await save.json().catch(() => null);
+      if (!save.ok) throw new Error(saveBody?.error ?? "Could not save availability. Please try again.");
+      setSaved(true);
 
       const response = await fetch(`/api/sessions/${sessionId}/best-time`);
       const bestTime = await response.json();
-      if (!response.ok) throw new Error(bestTime.error ?? "No common time found");
+      if (response.status === 404) return;
+      if (!response.ok) throw new Error("Your availability was saved, but matching could not finish. Please try again.");
       setResult(bestTime.data);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong");
@@ -60,6 +71,7 @@ export function AvailabilityForm({ sessionId }: { sessionId: string }) {
             <input id="end" name="end" type="time" defaultValue="22:00" required />
           </div>
         </div>
+        {saved && <p className="notice" role="status" style={{ marginTop: "1rem" }}>Your availability has been saved.</p>}
         {error && <p className="error" role="alert" style={{ marginTop: "1rem" }}>{error}</p>}
         <button disabled={pending} style={{ marginTop: "1rem" }} type="submit">
           {pending ? "Calculating..." : "Save and calculate best time"}
@@ -68,7 +80,7 @@ export function AvailabilityForm({ sessionId }: { sessionId: string }) {
 
       <section className="card">
         <p className="eyebrow">Shared availability</p>
-        <h2>{result ? "Best match found" : "Ready to coordinate"}</h2>
+        <h2>{result ? "Best match found" : saved ? "Waiting for a shared time" : "Ready to coordinate"}</h2>
         {result ? (
           <>
             <strong style={{ display: "block", fontFamily: "Georgia, serif", fontSize: "2rem", margin: "1rem 0 0.4rem" }}>
@@ -81,7 +93,7 @@ export function AvailabilityForm({ sessionId }: { sessionId: string }) {
             <div className="policy-box">The time was calculated deterministically from submitted windows.</div>
           </>
         ) : (
-          <p className="subtle">Add your window and StudySync will calculate the earliest time that works for the most people.</p>
+          <p className="subtle">{saved ? "No time meets the minimum group size yet. Your schedule is saved; other members can add or update their availability." : "Add your window and StudySync will calculate the earliest time that works for the most people."}</p>
         )}
       </section>
     </div>
