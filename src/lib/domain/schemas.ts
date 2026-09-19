@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+export const sessionCapacitySchema = z.object({
+  minPeople: z.number().int().min(2).max(12),
+  maxPeople: z.number().int().min(2).max(20),
+}).strict().refine((value) => value.maxPeople >= value.minPeople, {
+  message: "Maximum students must be at least the minimum",
+  path: ["maxPeople"],
+});
+
 export const availabilitySlotSchema = z
   .object({
     start: z.string().datetime(),

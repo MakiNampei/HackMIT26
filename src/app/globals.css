@@ -574,3 +574,28 @@ button:disabled { opacity: .6; cursor: wait; transform: none; }
 .material-next p:last-child { margin: .5rem 0 0; }
 @media(max-width:1100px) { .courses-layout { grid-template-columns: 1fr; } .course-create { position: static; } }
 @media(max-width:640px) { .material-next { flex-direction: column; align-items: stretch; } .upload-zone { padding: 1rem; } }
+
+/* Task-focused layouts and accessible navigation. */
+.detail-layout { align-items: start; }
+.detail-layout > .grid { align-content: start; }
+.page-header h1 { font-size: clamp(1.8rem, 3vw, 2.25rem); line-height: 1.15; overflow-wrap: anywhere; }
+.banner { padding: 1.4rem 1.6rem; }
+.banner h1 { font-size: clamp(1.8rem, 3vw, 2.4rem); line-height: 1.15; }
+.back-link { display: inline-flex; color: var(--green); margin-bottom: 1.2rem; font-weight: 700; padding: .35rem 0; }
+.page-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; flex-shrink: 0; }
+.more-menu { position: relative; }
+.more-menu summary, .management-panel summary, .course-add summary { cursor: pointer; font-weight: 700; padding: .65rem; }
+.more-menu[open] > div { position: absolute; right: 0; top: 100%; z-index: 2; padding: .65rem; background: white; box-shadow: var(--shadow); border: 1px solid var(--line); border-radius: 12px; min-width: 170px; }
+.management-panel > .card { border: 0; box-shadow: none; padding: 1rem 0 0; }
+button.secondary { background: white; border: 1px solid var(--line); color: var(--ink); }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid #65a884; outline-offset: 4px; }
+.slot-editor { border: 1px solid var(--line); border-radius: 12px; padding: 1rem; margin: 0; min-width: 0; }
+.slot-editor legend { font-weight: 700; padding: 0 .4rem; }
+.course-add { margin-bottom: 1.5rem; }
+.course-add > summary { color: var(--green); }
+.course-add .course-create { position: static; max-width: 640px; margin-top: .75rem; }
+.session-tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0; }
+@media(max-width:900px) { .nav-link span { display: inline; } .sidebar { gap: .5rem; flex-wrap: wrap; } .sidebar > form { margin-left: auto; } .nav-link { padding: .7rem .5rem; gap: .35rem; font-size: .85rem; } }
+@media(max-width:640px) { .page-actions { width: 100%; } .row-between { flex-wrap: wrap; } .meta-row svg { flex-shrink: 0; } }
+
+.availability-layout { align-items: start; }

@@ -233,12 +233,25 @@ async function calculateBestTime(sessionId: string) {
 }
 
 export const supabaseRepository: StudySyncRepository = {
+  async updateCapacity(sessionId, userId, minPeople, maxPeople) {
+    const { error } = await getSupabaseServerClient().rpc("update_session_capacity", {
+      p_session_id: sessionId, p_user_id: userId,
+      p_min_people: minPeople, p_max_people: maxPeople,
+    });
+    if (error) fail("Could not update session capacity", error);
+  },
   listCourses,
   listSessions,
   getSession,
   createSession,
   joinSession,
   leaveSession,
+  async getAvailability(sessionId, userId) {
+    const { data, error } = await getSupabaseServerClient().from("availability")
+      .select("starts_at, ends_at").eq("session_id", sessionId).eq("user_id", userId).order("starts_at");
+    if (error) fail("Could not load your availability", error);
+    return (data ?? []).map(row => ({ start: row.starts_at as string, end: row.ends_at as string }));
+  },
   submitAvailability,
   calculateBestTime,
 };

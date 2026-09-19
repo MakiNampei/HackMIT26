@@ -6,7 +6,7 @@ The persistent backend implements the same `StudySyncRepository` contract as the
 
 1. Create a Supabase project.
 2. Run `supabase/migrations/202609190001_initial_schema.sql` in the SQL editor.
-3. Run `supabase/migrations/202609190002_auth_profiles_and_permissions.sql`, then `supabase/migrations/202609190003_leave_session.sql`, followed by `supabase/seed.sql` in the SQL editor.
+3. Run the remaining files in `supabase/migrations/` in filename order (including `202609190004_session_capacity.sql`), followed by `supabase/seed.sql` in the SQL editor.
 4. Copy `.env.example` to `.env.local` and set:
 
 ```dotenv
@@ -26,6 +26,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
 - `create_session_with_creator` creates a session and creator membership atomically.
 - `join_session` locks the session row and enforces room capacity during concurrent joins.
 - `leave_session` removes membership and availability atomically; groups below their minimum reopen and clear their confirmed time and room. Creators can leave while retaining historical creator attribution.
+- `update_session_capacity` lets only the creator change minimum/maximum counts, locks against concurrent joins, and rejects a maximum below current membership. Increasing the minimum clears time/room matching; increasing the maximum beyond room capacity clears the room.
 - `replace_availability` replaces one member's windows in one transaction.
 - Best-time calculation runs deterministically in TypeScript after reading persisted windows.
 - Room recommendations use capacity first and then choose the nearest suitable room.

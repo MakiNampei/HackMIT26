@@ -9,6 +9,7 @@ import type {
   User,
 } from "@/lib/domain/types";
 import { calculateBestOverlap } from "@/lib/services/availability";
+import { sessionCapacitySchema } from "@/lib/domain/schemas";
 
 const users: User[] = [
   {
@@ -187,11 +188,38 @@ export const mockRepository: StudySyncRepository = {
     return session;
   },
 
+  async updateCapacity(sessionId, userId, minPeople, maxPeople) {
+    sessionCapacitySchema.parse({ minPeople, maxPeople });
+    const session = sessions.find((item) => item.id === sessionId);
+    if (!session) throw new Error("session_not_found");
+    if (session.creatorId !== userId) throw new Error("creator_only");
+    if (maxPeople < session.memberIds.length) throw new Error("capacity_below_members");
+    if (session.minPeople === minPeople && session.maxPeople === maxPeople) return;
+    const resetTime = minPeople > session.minPeople || session.memberIds.length < minPeople;
+    session.minPeople = minPeople;
+    session.maxPeople = maxPeople;
+    if (resetTime) {
+      session.confirmedSlot = undefined;
+      session.roomId = undefined;
+      session.status = session.memberIds.length >= minPeople ? "group_formed" : "open";
+    } else {
+      const room = rooms.find((item) => item.id === session.roomId);
+      if (room && room.capacity < maxPeople) {
+        session.roomId = undefined;
+        session.status = session.confirmedSlot ? "time_matched" : session.memberIds.length >= minPeople ? "group_formed" : "open";
+      } else if (session.status === "open" && session.memberIds.length >= minPeople) {
+        session.status = "group_formed";
+      }
+    }
+  },
+
   async joinSession(sessionId, userId) {
     const session = sessions.find((item) => item.id === sessionId);
     if (!session) throw new Error("Session not found");
-    if (!session.memberIds.includes(userId)) session.memberIds.push(userId);
-    if (session.memberIds.length >= session.minPeople) session.status = "group_formed";
+    if (session.memberIds.includes(userId)) return session;
+    if (session.memberIds.length >= session.maxPeople) throw new Error("session_full");
+    session.memberIds.push(userId);
+    if (session.memberIds.length >= session.minPeople && session.status === "open") session.status = "group_formed";
     return session;
   },
 
@@ -207,6 +235,9 @@ export const mockRepository: StudySyncRepository = {
     }
   },
 
+  async getAvailability(sessionId, userId) {
+    return availability[sessionId]?.[userId] ?? [];
+  },
   async submitAvailability(sessionId, userId, slots) {
     availability[sessionId] ??= {};
     availability[sessionId][userId] = slots;

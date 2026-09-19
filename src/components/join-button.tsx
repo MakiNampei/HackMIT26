@@ -24,7 +24,7 @@ export function JoinButton({ sessionId, isMember = false }: { sessionId: string;
 
   return (
     <div>
-      <button className={isMember ? "secondary" : undefined} disabled={state === "pending" || state === "done"} onClick={updateMembership} type="button">
+      <button className={isMember ? "button secondary" : undefined} disabled={state === "pending" || state === "done"} onClick={updateMembership} type="button">
         {state === "pending" ? (isMember ? "Leaving..." : "Joining...") : state === "done" ? (isMember ? "Left session" : "Joined") : isMember ? "Leave session" : "Join session"}
       </button>
       {state === "error" && <p role="alert" className="subtle">Could not {isMember ? "leave" : "join"} session. Please try again.</p>}

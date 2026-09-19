@@ -18,8 +18,10 @@ export interface StudySyncRepository {
   listSessions(filters?: SessionFilters): Promise<SessionWithDetails[]>;
   getSession(id: string): Promise<SessionWithDetails | null>;
   createSession(input: CreateSessionInput): Promise<Session>;
+  updateCapacity(sessionId: string, userId: string, minPeople: number, maxPeople: number): Promise<void>;
   joinSession(sessionId: string, userId: string): Promise<Session>;
   leaveSession(sessionId: string, userId: string): Promise<void>;
+  getAvailability(sessionId: string, userId: string): Promise<AvailabilitySlot[]>;
   submitAvailability(
     sessionId: string,
     userId: string,

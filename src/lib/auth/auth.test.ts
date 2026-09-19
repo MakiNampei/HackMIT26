@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ getUser: vi.fn(), getSession: vi.fn(), createSession: vi.fn(), joinSession: vi.fn(), leaveSession: vi.fn(), submitAvailability: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getUser: vi.fn(), getSession: vi.fn(), updateCapacity: vi.fn(), createSession: vi.fn(), joinSession: vi.fn(), leaveSession: vi.fn(), submitAvailability: vi.fn() }));
 vi.mock('@/lib/auth/server', () => ({ getUser: mocks.getUser }));
 vi.mock('@/lib/data/repository', () => ({ repository: mocks }));
 import { POST as create } from '@/app/api/sessions/route';
@@ -60,4 +60,26 @@ it('reports a failed leave without claiming success', async () => {
   mocks.getSession.mockResolvedValue({ id: 'session-1' });
   mocks.leaveSession.mockRejectedValue(new Error('Storage unavailable'));
   expect((await leave(request({}), params)).status).toBe(500);
+});
+
+import { PATCH as updateCapacity } from '@/app/api/sessions/[id]/route';
+it('allows only authenticated creators to update capacity', async () => {
+  mocks.getUser.mockResolvedValue(null);
+  expect((await updateCapacity(request({ minPeople: 2, maxPeople: 4 }), params)).status).toBe(401);
+  mocks.getUser.mockResolvedValue({ id: 'outsider' });
+  mocks.getSession.mockResolvedValue({ creatorId: 'owner', memberIds: ['owner'] });
+  expect((await updateCapacity(request({ minPeople: 2, maxPeople: 4 }), params)).status).toBe(403);
+  expect(mocks.updateCapacity).not.toHaveBeenCalled();
+  mocks.getUser.mockResolvedValue({ id: 'owner' });
+  expect((await updateCapacity(request({ minPeople: 2, maxPeople: 4 }), params)).status).toBe(200);
+  expect(mocks.updateCapacity).toHaveBeenCalledWith('session-1', 'owner', 2, 4);
+});
+it('rejects invalid capacity and changes below existing membership', async () => {
+  mocks.getUser.mockResolvedValue({ id: 'owner' });
+  mocks.getSession.mockResolvedValue({ creatorId: 'owner', memberIds: ['owner', 'a', 'b'] });
+  expect((await updateCapacity(request({ minPeople: 4, maxPeople: 2 }), params)).status).toBe(400);
+  expect((await updateCapacity(request({ minPeople: 2, maxPeople: 2 }), params)).status).toBe(409);
+  expect(mocks.updateCapacity).not.toHaveBeenCalled();
+  mocks.updateCapacity.mockRejectedValue(new Error('capacity_below_members'));
+  expect((await updateCapacity(request({ minPeople: 2, maxPeople: 3 }), params)).status).toBe(409);
 });
