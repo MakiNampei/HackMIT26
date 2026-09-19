@@ -6,10 +6,18 @@ import { createAuthClient } from '@/lib/auth/server';
 export type AuthState = { error?: string; message?: string };
 const credentials = z.object({ email: z.email(), password: z.string().min(1).max(128) });
 
-function registrationError(code?: string) {
+type SupabaseAuthError = { code?: string; message?: string; status?: number };
+
+function registrationError(error: SupabaseAuthError) {
+  const { code, message = '', status } = error;
   if (code === 'over_email_send_rate_limit') return 'Too many attempts. Please wait before trying again.';
   if (code === 'user_already_exists') return 'An account with this email already exists. Log in or resend the confirmation email.';
-  if (code === 'unexpected_failure' || code === 'email_address_not_authorized') {
+  if (
+    code === 'unexpected_failure' ||
+    code === 'email_address_not_authorized' ||
+    status === 500 ||
+    /confirmation email|send(?:ing)? (?:an? )?email/i.test(message)
+  ) {
     return 'Registration could not be completed because the confirmation email could not be sent. No usable account was created. Please try again later or contact the StudySync team.';
   }
   return 'Unable to create your account. Try again, or log in if you already have an account.';
@@ -34,7 +42,7 @@ export async function authenticate(mode: 'login' | 'register', _state: AuthState
     const client = await createAuthClient();
     if (mode === 'register') {
       const { data, error } = await client.auth.signUp({ ...parsed.data, options: { data: { display_name: name } } });
-      if (error) return { error: registrationError(error.code) };
+      if (error) return { error: registrationError(error) };
       if (!data.session) return { message: 'Check your email to confirm your account, then return here to log in.' };
     } else {
       const { error } = await client.auth.signInWithPassword(parsed.data);

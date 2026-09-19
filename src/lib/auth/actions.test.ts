@@ -30,6 +30,15 @@ it('explains when signup rolls back because confirmation email cannot be sent', 
     error: 'Registration could not be completed because the confirmation email could not be sent. No usable account was created. Please try again later or contact the StudySync team.',
   });
 });
+it('recognizes confirmation-email failures when Supabase omits an error code', async () => {
+  auth.signUp.mockResolvedValue({
+    data: { session: null },
+    error: { status: 500, message: 'Error sending confirmation email' },
+  });
+  expect(await authenticate('register', {}, form())).toEqual({
+    error: 'Registration could not be completed because the confirmation email could not be sent. No usable account was created. Please try again later or contact the StudySync team.',
+  });
+});
 it('redirects only after successful password authentication', async () => {
   auth.signInWithPassword.mockResolvedValue({ error: null });
   await expect(authenticate('login', {}, form())).rejects.toThrow('redirect:/dashboard');
