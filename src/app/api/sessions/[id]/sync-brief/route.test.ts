@@ -86,3 +86,53 @@ it("rejects outsiders and missing Meta configuration", async () => {
   expect((await POST(request(), context)).status).toBe(503);
   expect(mocks.create).not.toHaveBeenCalled();
 });
+
+it("rejects unauthenticated, missing, standalone, and inaccessible goal sessions", async () => {
+  mocks.getUser.mockResolvedValueOnce(null);
+  expect((await POST(request(), context)).status).toBe(401);
+
+  mocks.getSession.mockResolvedValueOnce(null);
+  expect((await POST(request(), context)).status).toBe(404);
+
+  mocks.getSession.mockResolvedValueOnce({ ...session, goalId: undefined });
+  expect((await POST(request(), context)).status).toBe(422);
+
+  mocks.getGoal.mockResolvedValueOnce(null);
+  expect((await POST(request(), context)).status).toBe(404);
+  expect(mocks.create).not.toHaveBeenCalled();
+});
+
+it("blocks assignment generation unless collaboration is clearly permitted", async () => {
+  for (const policy of [
+    undefined,
+    { collaborationAllowed: false, discussionAllowed: true, needsInstructorReview: false },
+    { collaborationAllowed: true, discussionAllowed: null, needsInstructorReview: false },
+    { collaborationAllowed: true, discussionAllowed: true, needsInstructorReview: true },
+  ]) {
+    mocks.getSession.mockResolvedValueOnce({ ...session, type: "assignment", policy });
+    expect((await POST(request(), context)).status).toBe(422);
+  }
+  expect(mocks.create).not.toHaveBeenCalled();
+});
+
+it("does not persist empty, truncated, or failed provider responses", async () => {
+  for (const [finishReason, content] of [["length", "Partial"], ["stop", " "]]) {
+    mocks.create.mockResolvedValueOnce({ choices: [{ finish_reason: finishReason, message: { content } }] });
+    expect((await POST(request(), context)).status).toBe(502);
+  }
+  mocks.create.mockRejectedValueOnce(new Error("provider secret details"));
+  const response = await POST(request(), context);
+  expect(response.status).toBe(502);
+  expect(JSON.stringify(await response.json())).not.toContain("secret details");
+  expect(mocks.saveBrief).not.toHaveBeenCalled();
+});
+
+it("asks Meta for every required brief section and the exact session duration", async () => {
+  await POST(request(), context);
+  const systemPrompt = mocks.create.mock.calls[0][0].messages[0].content;
+  for (const heading of ["SHARED GOAL", "STARTING POINTS", "AGENDA", "PARALLEL TRACKS", "REGROUP POINT", "PERSONAL WINS"]) {
+    expect(systemPrompt).toContain(heading);
+  }
+  expect(systemPrompt).toContain("agenda minutes must total the supplied session duration");
+  expect(mocks.create.mock.calls[0][0].messages[1].content).toContain('"durationMinutes":60');
+});
