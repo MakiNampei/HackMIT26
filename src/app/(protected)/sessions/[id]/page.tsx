@@ -43,7 +43,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
             <div className="row-between">
               <div>
                 <p className="eyebrow">Session plan</p>
-                <h2>{session.confirmedSlot ? <LocalTime start={session.confirmedSlot.start} /> : "Time to be matched"}</h2>
+                <h2>{session.confirmedSlot ? <LocalTime start={session.confirmedSlot.start} end={session.confirmedSlot.end} /> : "Time to be matched"}</h2>
               </div>
               <span className={`pill ${session.memberIds.length < session.minPeople ? "amber" : ""}`}>{session.memberIds.length >= session.minPeople ? "Minimum reached" : `${session.minPeople - session.memberIds.length} more needed`}</span>
             </div>

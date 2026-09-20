@@ -2,10 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useSyncExternalStore } from "react";
 import type { Course } from "@/lib/domain/types";
 
-export function CreateSessionForm({ courses, initial }: { courses: Course[]; initial?: { courseId?: string; title?: string; topic?: string; type?: string; sourceName?: string; rules?: string } }) {
+type Props = { courses: Course[]; initial?: { date?: string; courseId?: string; title?: string; topic?: string; type?: string; sourceName?: string; rules?: string } };
+const subscribe = () => () => {};
+export function CreateSessionForm(props: Props) {
+  const ready = useSyncExternalStore(subscribe, () => true, () => false);
+  return ready ? <SessionEditor {...props} /> : <p role="status">Loading session form…</p>;
+}
+function SessionEditor({ courses, initial }: Props) {
+  const [today] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  });
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -19,6 +29,14 @@ export function CreateSessionForm({ courses, initial }: { courses: Course[]; ini
     const date = String(form.get("date"));
     const start = String(form.get("start"));
     const end = String(form.get("end"));
+    const startDate = new Date(`${date}T${start}:00`);
+    const endDate = new Date(`${date}T${end}:00`);
+    if (!Number.isFinite(startDate.getTime()) || !Number.isFinite(endDate.getTime()) || endDate <= startDate) {
+      setError("Choose a valid date and an end time later than the start."); setPending(false); return;
+    }
+    if (endDate.getTime() - startDate.getTime() < Number(form.get("durationMinutes")) * 60000) {
+      setError("Your available window must be at least as long as the session duration."); setPending(false); return;
+    }
     const payload = {
       courseId: form.get("courseId"),
       type: form.get("type"),
@@ -29,8 +47,8 @@ export function CreateSessionForm({ courses, initial }: { courses: Course[]; ini
       durationMinutes: Number(form.get("durationMinutes")),
       proposedSlots: [
         {
-          start: new Date(`${date}T${start}:00`).toISOString(),
-          end: new Date(`${date}T${end}:00`).toISOString(),
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
         },
       ],
     };
@@ -55,6 +73,7 @@ export function CreateSessionForm({ courses, initial }: { courses: Course[]; ini
   return (
     <form className="card form-card" onSubmit={submit}>
       {initial?.sourceName && <div className="notice" style={{ marginBottom: "1rem" }}><strong>Draft from {initial.sourceName}</strong><p>{initial.rules}</p><small>Review the original document and confirm your plan. This is not instructor approval.</small></div>}
+      <p className="subtle">Choose a date and available time window in {Intl.DateTimeFormat().resolvedOptions().timeZone}. The group’s final time will be matched within this window.</p>
       <div className="form-grid">
         <div className="field">
           <label htmlFor="courseId">Course</label>
@@ -98,15 +117,15 @@ export function CreateSessionForm({ courses, initial }: { courses: Course[]; ini
           </select>
         </div>
         <div className="field">
-          <label htmlFor="date">Possible date</label>
-          <input id="date" name="date" type="date" defaultValue="2026-09-22" required />
+          <label htmlFor="date">Session date</label>
+          <input id="date" name="date" type="date" defaultValue={initial?.date ?? today} required />
         </div>
         <div className="field">
-          <label htmlFor="start">Available from</label>
+          <label htmlFor="start">Window start time</label>
           <input id="start" name="start" type="time" defaultValue="18:00" required />
         </div>
         <div className="field">
-          <label htmlFor="end">Available until</label>
+          <label htmlFor="end">Window end time</label>
           <input id="end" name="end" type="time" defaultValue="22:00" required />
         </div>
       </div>

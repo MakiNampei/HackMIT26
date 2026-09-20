@@ -1,3 +1,4 @@
+import { LocalTime } from "@/components/local-time";
 import { ArrowRight, Clock3, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 import type { SessionWithDetails } from "@/lib/domain/types";
@@ -16,6 +17,7 @@ export function SessionCard({ session }: { session: SessionWithDetails }) {
         <p className="subtle" style={{ fontSize: "0.9rem" }}>{session.topic}</p>
       </div>
       <div className="session-meta">
+        {session.confirmedSlot && <span className="meta-row"><Clock3 size={15} /><LocalTime start={session.confirmedSlot.start} end={session.confirmedSlot.end} /></span>}
         <span className="meta-row"><Clock3 size={15} /> {session.durationMinutes} minutes</span>
         <span className="meta-row"><Users size={15} /> {session.memberIds.length}/{session.maxPeople} students</span>
         <span className="meta-row"><MapPin size={15} /> {session.room?.building ?? "Room after matching"}</span>

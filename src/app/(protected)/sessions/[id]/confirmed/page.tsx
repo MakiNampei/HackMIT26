@@ -22,7 +22,7 @@ export default async function ConfirmedPage({ params }: { params: Promise<{ id: 
         {confirmed ? "Your time and meeting place are confirmed. Review the course collaboration rules before you meet." : "This session is not confirmed yet. Return to the activity to check its progress and update your availability."}
       </p>
       <div className="grid three" style={{ textAlign: "left" }}>
-        <div className="policy-box"><CalendarCheck size={20} /><br /><strong>{session.confirmedSlot ? <LocalTime start={session.confirmedSlot.start} /> : "Time pending"}</strong><br /><span className="subtle">{session.durationMinutes} minutes</span></div>
+        <div className="policy-box"><CalendarCheck size={20} /><br /><strong>{session.confirmedSlot ? <LocalTime start={session.confirmedSlot.start} end={session.confirmedSlot.end} /> : "Time pending"}</strong><br /><span className="subtle">{session.durationMinutes} minutes</span></div>
         <div className="policy-box"><Users size={20} /><br /><strong>{session.members.length} classmates</strong><br /><span className="subtle">{session.memberIds.length >= session.minPeople ? "Minimum group size reached" : "Waiting for members"}</span></div>
         <div className="policy-box"><MapPin size={20} /><br /><strong>{session.room?.name ?? "Room TBD"}</strong><br /><span className="subtle">{session.room?.building}</span></div>
       </div>
