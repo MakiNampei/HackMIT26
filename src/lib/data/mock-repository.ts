@@ -1,3 +1,5 @@
+import { demoRooms } from "./demo-rooms";
+import { validateRoomSelection, validateSessionConfirmation } from "@/lib/services/room";
 import { canMatchTime, policyAllowsCollaboration } from "@/lib/domain/policy-workflow";
 import type { CreateSessionInput, StudySyncRepository } from "@/lib/data/contracts";
 import type {
@@ -59,6 +61,7 @@ const courses: Course[] = [
 ];
 
 const rooms: Room[] = [
+  ...demoRooms,
   {
     id: "room-olin-204",
     building: "Olin Library",
@@ -178,6 +181,19 @@ function rematch(session: Session) {
 }
 
 export const mockRepository: StudySyncRepository = {
+  async confirmSession(sessionId, userId, expected) {
+    const session = sessions.find(item => item.id === sessionId);
+    validateSessionConfirmation(session ? enrich(session) : null, userId, expected);
+    session!.status = "confirmed";
+  },
+
+  async selectRoom(sessionId, userId, roomId) {
+    const session = sessions.find(item => item.id === sessionId);
+    const room = demoRooms.find(item => item.id === roomId);
+    validateRoomSelection(session ? enrich(session) : null, userId, room);
+    session!.roomId = room!.id;
+    session!.status = "room_selected";
+  },
   async getCoursePolicy(courseId) { return coursePolicies[courseId] ?? null; },
   async saveCoursePolicy(courseId, policy) {
     coursePolicies[courseId] = policy;

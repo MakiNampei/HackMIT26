@@ -15,6 +15,8 @@ export type SessionFilters = {
 export type CreateSessionInput = Omit<Session, "id" | "status" | "memberIds">;
 
 export interface StudySyncRepository {
+  confirmSession(sessionId: string, userId: string, expected: AvailabilitySlot & { roomId: string }): Promise<void>;
+  selectRoom(sessionId: string, userId: string, roomId: string): Promise<void>;
   getCoursePolicy(courseId: string): Promise<AcademicPolicy | null>;
   saveCoursePolicy(courseId: string, policy: AcademicPolicy, sourceName: string): Promise<void>;
   savePolicy(sessionId: string, userId: string, policy: AcademicPolicy, sourceName: string): Promise<void>;

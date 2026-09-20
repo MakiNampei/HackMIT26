@@ -1,3 +1,4 @@
+import { ConfirmSessionButton } from "@/components/confirm-session-button";
 import { LocalTime } from "@/components/local-time";
 import { requireUser } from "@/lib/auth/server";
 import { CalendarCheck, Check, MapPin, Users } from "lucide-react";
@@ -6,7 +7,7 @@ import { notFound } from "next/navigation";
 import { repository } from "@/lib/data/repository";
 
 export default async function ConfirmedPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireUser();
+  const user = await requireUser();
   const { id } = await params;
   const session = await repository.getSession(id);
   if (!session) notFound();
@@ -26,6 +27,8 @@ export default async function ConfirmedPage({ params }: { params: Promise<{ id: 
         <div className="policy-box"><Users size={20} /><br /><strong>{session.members.length} classmates</strong><br /><span className="subtle">{session.memberIds.length >= session.minPeople ? "Minimum group size reached" : "Waiting for members"}</span></div>
         <div className="policy-box"><MapPin size={20} /><br /><strong>{session.room?.name ?? "Room TBD"}</strong><br /><span className="subtle">{session.room?.building}</span></div>
       </div>
+      {session.room?.isDemo && <p className="notice">Demo room — this confirms the group’s plan only. No real room reservation has been made.</p>}
+      {!confirmed && session.room && session.confirmedSlot && session.creatorId === user.id && <ConfirmSessionButton sessionId={id} start={session.confirmedSlot.start} end={session.confirmedSlot.end} roomId={session.room.id} isDemo={session.room.isDemo} />}
       <div className="notice" style={{ margin: "1.4rem 0" }}>
         Each student must follow the instructor&apos;s collaboration policy and submit independent work unless explicitly permitted.
       </div>

@@ -665,3 +665,8 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
 .member-availability-row .avatar { flex-shrink: 0; }
 .member-availability-windows { margin: .65rem 0 0; padding-left: 1.3rem; display: grid; gap: .5rem; overflow-wrap: anywhere; }
 .member-availability-empty { margin: .65rem 0 0; }
+
+.room-picker-disclosure > summary { cursor: pointer; font-size: 1.1rem; }
+.room-picker-disclosure > summary > span { display: inline-block; vertical-align: middle; }
+.room-picker-summary { display: block; font-size: .9rem; font-weight: 400; margin-top: .25rem; }
+.room-picker-disclosure[open] > summary { margin-bottom: 1rem; }

@@ -47,6 +47,8 @@ export type Session = {
 };
 
 export type Room = {
+  facilities?: string[];
+  isDemo?: boolean;
   id: string;
   building: string;
   name: string;

@@ -1,0 +1,37 @@
+import { expect, it } from "vitest";
+import { mockRepository as repository } from "./mock-repository";
+import { demoRooms } from "./demo-rooms";
+import { sessionChecklist } from "@/lib/domain/policy-workflow";
+it("lists ten distinct demo rooms with varied capacities and facilities", () => {
+  expect(new Set(demoRooms.map(room => room.id)).size).toBe(10);
+  expect(new Set(demoRooms.map(room => room.capacity)).size).toBeGreaterThan(3);
+  expect(demoRooms.every(room => room.isDemo && room.facilities?.length)).toBe(true);
+});
+it("requires the creator, a matched time and capacity, then saves and supports changing rooms", async () => {
+  const session = await repository.createSession({ courseId: "course-cse347", creatorId: "user-maki", type: "study", title: "Room selection", topic: "Graphs", minPeople: 2, maxPeople: 5, durationMinutes: 60, proposedSlots: [] });
+  await repository.joinSession(session.id, "user-alex");
+  await expect(repository.selectRoom(session.id, "user-maki", "demo-room-4")).rejects.toThrow("time_not_matched");
+  const slots = [{ start: "2026-09-22T20:00:00.000Z", end: "2026-09-22T22:00:00.000Z" }];
+  for (const user of session.memberIds) await repository.submitAvailability(session.id, user, slots);
+  await expect(repository.selectRoom(session.id, "user-alex", "demo-room-4")).rejects.toThrow("creator_only");
+  await expect(repository.selectRoom(session.id, "user-maki", "unknown")).rejects.toThrow("room_not_found");
+  await expect(repository.selectRoom(session.id, "user-maki", "demo-room-1")).rejects.toThrow("room_too_small");
+  await repository.selectRoom(session.id, "user-maki", "demo-room-4");
+  const selected = (await repository.getSession(session.id))!;
+  expect(selected.room?.name).toBe("Room 4");
+  expect(selected.room?.facilities).toContain("Projector");
+  expect(selected.status).toBe("room_selected");
+  expect(sessionChecklist(selected).find(step => step.label === "Room selected")?.done).toBe(true);
+  expect(sessionChecklist(selected).find(step => step.label === "Confirmed")?.done).toBe(false);
+  const expected = { ...selected.confirmedSlot!, roomId: "demo-room-4" };
+  await expect(repository.confirmSession(session.id, "user-alex", expected)).rejects.toThrow("creator_only");
+  await expect(repository.confirmSession(session.id, "user-maki", { ...expected, roomId: "demo-room-10" })).rejects.toThrow("session_changed");
+  await repository.confirmSession(session.id, "user-maki", expected);
+  expect(session.status).toBe("confirmed");
+  expect(sessionChecklist((await repository.getSession(session.id))!).every(step => step.done)).toBe(true);
+  await repository.confirmSession(session.id, "user-maki", expected);
+  expect(session.status).toBe("confirmed");
+  await repository.selectRoom(session.id, "user-maki", "demo-room-10");
+  expect(session.status).toBe("room_selected");
+  expect((await repository.getSession(session.id))!.room?.name).toBe("Room 10");
+});

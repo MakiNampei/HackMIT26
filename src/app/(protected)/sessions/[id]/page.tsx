@@ -1,3 +1,5 @@
+import { ConfirmSessionButton } from "@/components/confirm-session-button";
+import { RoomPicker } from "@/components/room-picker";
 import { canMatchTime, sessionChecklist } from "@/lib/domain/policy-workflow";
 import { SessionProgressRefresh } from "@/components/session-progress-refresh";
 import { CheckInButton } from "@/components/check-in-button";
@@ -42,6 +44,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
         <div className="page-actions">
           {session.memberIds.includes(user.id) ? <>
             {session.confirmedSlot && <CheckInButton key={`${session.id}-${user.id}`} sessionId={session.id} startsAt={session.confirmedSlot.start} checkedInAt={session.checkIns?.[user.id]} />}
+            {session.confirmedSlot && <a className="button secondary" href="#choose-room">{session.roomId ? "Change room" : "Choose a room"}</a>}
             <Link className="button" href={`/sessions/${session.id}/availability`}>Set my availability</Link>
             <details className="more-menu"><summary>More</summary><JoinButton key="member" sessionId={session.id} isMember /></details>
           </> : <JoinButton sessionId={session.id} />}
@@ -104,6 +107,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
               </ul>
             </section>
           )}
+          {isMember && session.confirmedSlot && canMatchTime(session) && <RoomPicker sessionId={id} maxPeople={session.maxPeople} selectedRoomId={session.roomId} isCreator={session.creatorId === user.id} />}
           {(session.type === "study" || session.type === "exam_review") && (
             <SessionChat key={`chat-${session.id}`} sessionId={session.id} topic={session.topic} examReview={session.type === "exam_review"} isMember={session.memberIds.includes(user.id)} />
           )}
@@ -129,10 +133,11 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           </section>
           {session.room && (
             <section className="card">
-              <p className="eyebrow">Recommended room</p>
+              <p className="eyebrow">Selected room{session.room.isDemo ? " · Demo" : ""}</p>
               <h2>{session.room.name}</h2>
               <p className="subtle">{session.room.building} · capacity {session.room.capacity} · {session.room.distanceMinutes} min away</p>
-              <Link className="button" href={`/sessions/${session.id}/confirmed`}>View session status</Link>
+              {session.status !== "confirmed" && session.confirmedSlot && (session.creatorId === user.id ? <ConfirmSessionButton sessionId={id} start={session.confirmedSlot.start} end={session.confirmedSlot.end} roomId={session.room.id} isDemo={session.room.isDemo} /> : <p className="notice">Waiting for the session creator to confirm the time and room.</p>)}
+              <Link className="button secondary" href={`/sessions/${session.id}/confirmed`}>{session.status === "confirmed" ? "View confirmed session" : "View session status"}</Link>
             </section>
           )}
         </aside>

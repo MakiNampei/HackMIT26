@@ -1,3 +1,5 @@
+import { demoRooms } from "./demo-rooms";
+import { validateRoomSelection, validateSessionConfirmation } from "@/lib/services/room";
 import { canMatchTime, policyAllowsCollaboration } from "@/lib/domain/policy-workflow";
 import type {
   CreateSessionInput,
@@ -273,6 +275,35 @@ async function calculateBestTime(sessionId: string) {
 }
 
 export const supabaseRepository: StudySyncRepository = {
+  async confirmSession(sessionId, userId, expected) {
+    const session = await getSession(sessionId);
+    validateSessionConfirmation(session, userId, expected);
+    const { data, error } = await getSupabaseServerClient().from("sessions").update({ status: "confirmed" })
+      .eq("id", sessionId).eq("creator_id", userId).eq("room_id", expected.roomId)
+      .eq("confirmed_start", expected.start).eq("confirmed_end", expected.end)
+      .eq("max_people", session!.maxPeople).eq("min_people", session!.minPeople)
+      .in("status", ["room_selected", "confirmed"]).select("id").maybeSingle();
+    if (error) fail("Could not confirm session", error);
+    if (!data) throw new Error("session_changed");
+  },
+
+  async selectRoom(sessionId, userId, roomId) {
+    const session = await getSession(sessionId);
+    const room = demoRooms.find(item => item.id === roomId);
+    validateRoomSelection(session, userId, room);
+    const client = getSupabaseServerClient();
+    const { error: roomError } = await client.from("rooms").upsert({
+      id: room!.id, name: room!.name, building: room!.building, capacity: room!.capacity,
+      distance_minutes: room!.distanceMinutes, booking_url: room!.bookingUrl,
+    }, { onConflict: "id" });
+    if (roomError) fail("Could not save demo room", roomError);
+    // Reject a selection if the schedule or capacity changed while the picker was open.
+    const { data, error } = await client.from("sessions").update({ room_id: room!.id, status: "room_selected" })
+      .eq("id", sessionId).eq("creator_id", userId).eq("max_people", session!.maxPeople)
+      .eq("confirmed_start", session!.confirmedSlot!.start).eq("confirmed_end", session!.confirmedSlot!.end).select("id").maybeSingle();
+    if (error) fail("Could not select room", error);
+    if (!data) throw new Error("session_changed");
+  },
   async getCoursePolicy(courseId) {
     const { data, error } = await getSupabaseServerClient().from("academic_policies").select("*").eq("course_id", courseId).eq("prompt_version", "course-policy-v1").order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (error) fail("Could not load course policy", error);

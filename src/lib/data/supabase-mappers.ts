@@ -1,3 +1,4 @@
+import { demoRooms } from "./demo-rooms";
 import type {
   AcademicPolicy,
   AvailabilitySlot,
@@ -81,6 +82,8 @@ export const mapProfile = (row: ProfileRow): User => ({
 });
 
 export const mapRoom = (row: RoomRow): Room => ({
+  facilities: demoRooms.find(room => room.id === row.id)?.facilities,
+  isDemo: demoRooms.some(room => room.id === row.id),
   id: row.id,
   building: row.building,
   name: row.name,
