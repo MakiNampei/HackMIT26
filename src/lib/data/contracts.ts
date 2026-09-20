@@ -1,4 +1,5 @@
 import type {
+  AcademicPolicy,
   AvailabilitySlot,
   BestTimeResult,
   Course,
@@ -14,6 +15,8 @@ export type SessionFilters = {
 export type CreateSessionInput = Omit<Session, "id" | "status" | "memberIds">;
 
 export interface StudySyncRepository {
+  savePolicy(sessionId: string, userId: string, policy: AcademicPolicy, sourceName: string): Promise<void>;
+  acknowledgePolicy(sessionId: string, userId: string, policyId: string): Promise<void>;
   listCourses(): Promise<Course[]>;
   listSessions(filters?: SessionFilters): Promise<SessionWithDetails[]>;
   getSession(id: string): Promise<SessionWithDetails | null>;

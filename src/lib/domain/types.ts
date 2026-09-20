@@ -75,6 +75,7 @@ export type AcademicPolicy = {
 };
 
 export type SessionWithDetails = Session & {
+  policyAcknowledgements?: Record<string, string>;
   checkIns?: Record<string, string>;
   course: Course;
   creator: User;

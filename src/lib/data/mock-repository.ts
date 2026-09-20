@@ -1,3 +1,4 @@
+import { canMatchTime, policyAllowsCollaboration } from "@/lib/domain/policy-workflow";
 import type { CreateSessionInput, StudySyncRepository } from "@/lib/data/contracts";
 import type {
   AcademicPolicy,
@@ -149,11 +150,14 @@ const availability: Record<string, Record<string, AvailabilitySlot[]>> = {
   },
 };
 
+const policyAcknowledgements: Record<string, Record<string, string>> = {};
+
 const checkIns: Record<string, Record<string, string>> = {};
 
 function enrich(session: Session): SessionWithDetails {
   return {
     ...session,
+    policyAcknowledgements: { ...policyAcknowledgements[session.id] },
     checkIns: { ...checkIns[session.id] },
     course: courses.find((course) => course.id === session.courseId)!,
     creator: users.find((user) => user.id === session.creatorId)!,
@@ -163,7 +167,30 @@ function enrich(session: Session): SessionWithDetails {
   };
 }
 
+function rematch(session: Session) {
+  const windows = Object.fromEntries(session.memberIds.map(id => [id, availability[session.id]?.[id] ?? []]));
+  const result = canMatchTime(enrich(session)) ? calculateBestOverlap(windows, session.durationMinutes, session.minPeople) : null;
+  Object.assign(session, matchedSessionState(session, result));
+}
+
 export const mockRepository: StudySyncRepository = {
+  async savePolicy(sessionId, userId, policy) {
+    const session = sessions.find(item => item.id === sessionId);
+    if (!session || session.creatorId !== userId || !session.memberIds.includes(userId)) throw new Error("creator_only");
+    policies.push(policy);
+    session.policyId = policy.id;
+    policyAcknowledgements[sessionId] = {};
+    rematch(session);
+  },
+  async acknowledgePolicy(sessionId, userId, policyId) {
+    const session = sessions.find(item => item.id === sessionId);
+    if (!session?.memberIds.includes(userId)) throw new Error("not_a_session_member");
+    if (session.policyId !== policyId) throw new Error("policy_changed");
+    if (!policyAllowsCollaboration(enrich(session).policy)) throw new Error("policy_needs_clarification");
+    policyAcknowledgements[sessionId] ??= {};
+    policyAcknowledgements[sessionId][userId] = policyId;
+    rematch(session);
+  },
   async checkIn(sessionId, userId) {
     const session = sessions.find(item => item.id === sessionId);
     if (!session) throw new Error("session_not_found");
@@ -233,6 +260,7 @@ export const mockRepository: StudySyncRepository = {
     if (session.memberIds.includes(userId)) return session;
     if (session.memberIds.length >= session.maxPeople) throw new Error("session_full");
     session.memberIds.push(userId);
+    if (session.type === "assignment") rematch(session);
     if (session.memberIds.length >= session.minPeople && session.status === "open") session.status = "group_formed";
     return session;
   },
@@ -243,6 +271,8 @@ export const mockRepository: StudySyncRepository = {
     session.memberIds = session.memberIds.filter((id) => id !== userId);
     delete availability[sessionId]?.[userId];
     delete checkIns[sessionId]?.[userId];
+    delete policyAcknowledgements[sessionId]?.[userId];
+    if (session.type === "assignment") rematch(session);
     if (session.memberIds.length < session.minPeople) {
       session.status = "open";
       session.confirmedSlot = undefined;
@@ -258,14 +288,13 @@ export const mockRepository: StudySyncRepository = {
     availability[sessionId][userId] = slots;
     const session = sessions.find(item => item.id === sessionId);
     if (session) {
-      const windows = Object.fromEntries(session.memberIds.map(id => [id, availability[sessionId][id] ?? []]));
-      Object.assign(session, matchedSessionState(session, calculateBestOverlap(windows, session.durationMinutes, session.minPeople)));
+      rematch(session);
     }
   },
 
   async calculateBestTime(sessionId) {
     const session = sessions.find((item) => item.id === sessionId);
-    if (!session) return null;
+    if (!session || !canMatchTime(enrich(session))) return null;
     return calculateBestOverlap(
       availability[sessionId] ?? {},
       session.durationMinutes,
