@@ -1,3 +1,5 @@
+import { SessionProgressRefresh } from "@/components/session-progress-refresh";
+import { CheckInButton } from "@/components/check-in-button";
 import { SessionChat } from "@/components/session-chat";
 import { SessionGroupPlan } from "@/components/session-group-plan";
 import { LocalTime } from "@/components/local-time";
@@ -18,10 +20,17 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const session = await repository.getSession(id);
   if (!session) notFound();
 
+  const isMember = session.memberIds.includes(user.id);
+  const memberAvailability = isMember ? await Promise.all(session.members.map(async member => ({
+    member,
+    slots: (await repository.getAvailability(id, member.id)).slice().sort((a, b) => Date.parse(a.start) - Date.parse(b.start)),
+  }))) : [];
+
   const completed = session.status === "confirmed" ? 5 : session.status === "room_selected" ? 4 : session.status === "policy_verified" ? 3 : session.status === "time_matched" ? 2 : session.status === "group_formed" ? 1 : 0;
 
   return (
     <>
+      {isMember && <SessionProgressRefresh />}
       <Link className="back-link" href="/dashboard">← Back to sessions</Link>
       <header className="page-header">
         <div>
@@ -31,6 +40,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
         </div>
         <div className="page-actions">
           {session.memberIds.includes(user.id) ? <>
+            {session.confirmedSlot && <CheckInButton key={`${session.id}-${user.id}`} sessionId={session.id} startsAt={session.confirmedSlot.start} checkedInAt={session.checkIns?.[user.id]} />}
             <Link className="button" href={`/sessions/${session.id}/availability`}>Set my availability</Link>
             <details className="more-menu"><summary>More</summary><JoinButton key="member" sessionId={session.id} isMember /></details>
           </> : <JoinButton sessionId={session.id} />}
@@ -59,6 +69,33 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
               <span className="subtle">{session.memberIds.length} joined</span>
             </div>
           </section>
+          {isMember && (
+            <section className="card" aria-labelledby="member-availability-heading">
+              <div className="row-between">
+                <div>
+                  <p className="eyebrow">Group schedule</p>
+                  <h2 id="member-availability-heading">Everyone’s availability</h2>
+                </div>
+                <span className="pill">{memberAvailability.filter(({ slots }) => slots.length > 0).length}/{session.members.length} submitted</span>
+              </div>
+              <p className="subtle">All available windows, shown in your local time zone.</p>
+              <ul className="member-availability-list">
+                {memberAvailability.map(({ member, slots }) => (
+                  <li className="member-availability-row" key={member.id}>
+                    <div className="meta-row">
+                      <span className="avatar" aria-hidden="true">{member.initials}</span>
+                      <strong>{member.name}{member.id === user.id ? " (you)" : ""}</strong>
+                    </div>
+                    {slots.length ? (
+                      <ul className="member-availability-windows">
+                        {slots.map((slot, index) => <li key={`${slot.start}-${slot.end}-${index}`}><LocalTime start={slot.start} end={slot.end} /></li>)}
+                      </ul>
+                    ) : <p className="subtle member-availability-empty">Not submitted yet</p>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {(session.type === "study" || session.type === "exam_review") && (
             <SessionChat key={`chat-${session.id}`} sessionId={session.id} topic={session.topic} examReview={session.type === "exam_review"} isMember={session.memberIds.includes(user.id)} />
           )}

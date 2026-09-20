@@ -3,6 +3,7 @@ import { ArrowRight, CalendarCheck, ListTodo, Sparkles, Users } from "lucide-rea
 import Link from "next/link";
 import { connection } from "next/server";
 import { SessionBrowser } from "@/components/session-browser";
+import { SessionCard } from "@/components/session-card";
 import { repository } from "@/lib/data/repository";
 
 export default async function DashboardPage() {
@@ -12,10 +13,16 @@ export default async function DashboardPage() {
   // This server component reads the request time after awaiting connection().
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
-  const myActiveSessions = sessions.filter((session) =>
-    (session.creatorId === user.id || session.memberIds.includes(user.id)) &&
-    (!session.confirmedSlot || Date.parse(session.confirmedSlot.end) > now),
+  const activeSessions = sessions.filter((session) =>
+    !session.confirmedSlot || Date.parse(session.confirmedSlot.end) > now,
   );
+  const myActiveSessions = activeSessions.filter((session) =>
+    session.creatorId === user.id || session.memberIds.includes(user.id),
+  );
+  const pastSessions = sessions.filter((session) =>
+    (session.creatorId === user.id || session.memberIds.includes(user.id)) &&
+    session.confirmedSlot && Date.parse(session.confirmedSlot.end) <= now,
+  ).sort((a, b) => Date.parse(b.confirmedSlot!.end) - Date.parse(a.confirmedSlot!.end));
   const awaitingSchedule = myActiveSessions.filter((session) => !session.confirmedSlot);
   const upcomingMeetups = myActiveSessions.filter((session) =>
     session.confirmedSlot && Date.parse(session.confirmedSlot.start) > now,
@@ -64,7 +71,30 @@ export default async function DashboardPage() {
           </div>
           <span className="subtle"><Sparkles size={15} style={{ verticalAlign: "middle" }} /> AI coordinated</span>
         </div>
-        <SessionBrowser sessions={sessions} userId={user.id} />
+        <SessionBrowser sessions={activeSessions} userId={user.id} />
+      </section>
+
+      <section aria-labelledby="past-sessions-heading">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Your history</p>
+            <h2 id="past-sessions-heading">Past sessions</h2>
+            <p className="subtle">Sessions you organized or joined that have ended, most recent first.</p>
+          </div>
+          <span className="pill">{pastSessions.length} {pastSessions.length === 1 ? "session" : "sessions"}</span>
+        </div>
+        {pastSessions.length ? (
+          <div className="grid two">
+            {pastSessions.map((session) => (
+              <div className="grid" key={session.id}>
+                <span className="subtle">{session.creatorId === user.id ? "You organized this session" : "You joined this session"}</span>
+                <SessionCard session={session} ended userId={user.id} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="notice">No past sessions yet. Sessions you organize or join will appear here after they end.</p>
+        )}
       </section>
     </>
   );

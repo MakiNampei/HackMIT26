@@ -8,7 +8,7 @@ import type {
   SessionWithDetails,
   User,
 } from "@/lib/domain/types";
-import { calculateBestOverlap } from "@/lib/services/availability";
+import { calculateBestOverlap, matchedSessionState } from "@/lib/services/availability";
 import { sessionCapacitySchema } from "@/lib/domain/schemas";
 
 const users: User[] = [
@@ -149,9 +149,12 @@ const availability: Record<string, Record<string, AvailabilitySlot[]>> = {
   },
 };
 
+const checkIns: Record<string, Record<string, string>> = {};
+
 function enrich(session: Session): SessionWithDetails {
   return {
     ...session,
+    checkIns: { ...checkIns[session.id] },
     course: courses.find((course) => course.id === session.courseId)!,
     creator: users.find((user) => user.id === session.creatorId)!,
     members: session.memberIds.map((id) => users.find((user) => user.id === id)!),
@@ -161,6 +164,17 @@ function enrich(session: Session): SessionWithDetails {
 }
 
 export const mockRepository: StudySyncRepository = {
+  async checkIn(sessionId, userId) {
+    const session = sessions.find(item => item.id === sessionId);
+    if (!session) throw new Error("session_not_found");
+    if (!session.memberIds.includes(userId)) throw new Error("not_a_session_member");
+    if (!session.confirmedSlot || !(Date.parse(session.confirmedSlot.start) <= Date.now())) {
+      throw new Error("check_in_not_open");
+    }
+    checkIns[sessionId] ??= {};
+    checkIns[sessionId][userId] ??= new Date().toISOString();
+    return checkIns[sessionId][userId];
+  },
   async listCourses() {
     return courses;
   },
@@ -228,6 +242,7 @@ export const mockRepository: StudySyncRepository = {
     if (!session) throw new Error("Session not found");
     session.memberIds = session.memberIds.filter((id) => id !== userId);
     delete availability[sessionId]?.[userId];
+    delete checkIns[sessionId]?.[userId];
     if (session.memberIds.length < session.minPeople) {
       session.status = "open";
       session.confirmedSlot = undefined;
@@ -241,6 +256,11 @@ export const mockRepository: StudySyncRepository = {
   async submitAvailability(sessionId, userId, slots) {
     availability[sessionId] ??= {};
     availability[sessionId][userId] = slots;
+    const session = sessions.find(item => item.id === sessionId);
+    if (session) {
+      const windows = Object.fromEntries(session.memberIds.map(id => [id, availability[sessionId][id] ?? []]));
+      Object.assign(session, matchedSessionState(session, calculateBestOverlap(windows, session.durationMinutes, session.minPeople)));
+    }
   },
 
   async calculateBestTime(sessionId) {

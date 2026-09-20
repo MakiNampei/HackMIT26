@@ -657,3 +657,11 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
   .calendar-count-label { display: none; }
   .calendar-days { gap: .2rem; }
 }
+
+.member-availability-list { list-style: none; padding: 0; margin: 1rem 0 0; }
+.member-availability-row { padding: 1rem 0; border-top: 1px solid var(--border, #dbe3de); }
+.member-availability-row:last-child { padding-bottom: 0; }
+.member-availability-row .meta-row { overflow-wrap: anywhere; }
+.member-availability-row .avatar { flex-shrink: 0; }
+.member-availability-windows { margin: .65rem 0 0; padding-left: 1.3rem; display: grid; gap: .5rem; overflow-wrap: anywhere; }
+.member-availability-empty { margin: .65rem 0 0; }

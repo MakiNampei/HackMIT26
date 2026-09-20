@@ -1,15 +1,16 @@
 import { LocalTime } from "@/components/local-time";
+import { CheckInButton } from "@/components/check-in-button";
 import { ArrowRight, Clock3, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 import type { SessionWithDetails } from "@/lib/domain/types";
 
-export function SessionCard({ session }: { session: SessionWithDetails }) {
+export function SessionCard({ session, ended = false, userId }: { session: SessionWithDetails; ended?: boolean; userId?: string }) {
   return (
     <article className="card session-card">
       <div className="session-card-top">
         <span className="course-code">{session.course.code}</span>
-        <span className={`pill ${session.status === "open" ? "amber" : ""}`}>
-          {session.status.replaceAll("_", " ")}
+        <span className={`pill ${!ended && session.status === "open" ? "amber" : ""}`}>
+          {ended ? "Ended" : session.status.replaceAll("_", " ")}
         </span>
       </div>
       <div>
@@ -23,6 +24,9 @@ export function SessionCard({ session }: { session: SessionWithDetails }) {
         <span className="meta-row"><MapPin size={15} /> {session.room?.building ?? "Room after matching"}</span>
       </div>
       <div className="row-between" style={{ marginTop: "auto" }}>
+        {userId && session.memberIds.includes(userId) && session.confirmedSlot && (
+          <CheckInButton key={`${session.id}-${userId}`} sessionId={session.id} startsAt={session.confirmedSlot.start} checkedInAt={session.checkIns?.[userId]} />
+        )}
         <div className="avatars" aria-label="Session members">
           {session.members.slice(0, 4).map((member) => (
             <span className="avatar" key={member.id} title={member.name}>{member.initials}</span>

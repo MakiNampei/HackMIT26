@@ -75,6 +75,7 @@ export type AcademicPolicy = {
 };
 
 export type SessionWithDetails = Session & {
+  checkIns?: Record<string, string>;
   course: Course;
   creator: User;
   members: User[];

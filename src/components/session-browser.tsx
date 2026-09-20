@@ -15,7 +15,7 @@ export function SessionBrowser({ sessions, userId }: { sessions: SessionWithDeta
       <button className={view === "discover" ? "button" : "button secondary"} aria-pressed={view === "discover"} onClick={() => setView("discover")}>Discover sessions</button>
     </div>
     <SessionCalendar sessions={visible} />
-    <div className="grid two">{visible.map(session => <div className="grid" key={session.id}>{view === "mine" && <span className="subtle">{session.creatorId === userId ? "You organize this session" : "You have joined"}</span>}<SessionCard session={session} /></div>)}</div>
+    <div className="grid two">{visible.map(session => <div className="grid" key={session.id}>{view === "mine" && <span className="subtle">{session.creatorId === userId ? "You organize this session" : "You have joined"}</span>}<SessionCard session={session} userId={userId} /></div>)}</div>
     {!visible.length && <p className="notice">{view === "mine" ? "No sessions yet. Discover a group to join or create your own." : "No other sessions available yet. You can create a new group."}</p>}
   </>;
 }

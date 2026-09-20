@@ -23,9 +23,9 @@ import type {
   SessionWithDetails,
   User,
 } from "@/lib/domain/types";
-import { calculateBestOverlap } from "@/lib/services/availability";
+import { calculateBestOverlap, matchedSessionState } from "@/lib/services/availability";
 
-type MemberRow = { session_id: string; user_id: string };
+type MemberRow = { session_id: string; user_id: string; checked_in_at?: string | null };
 type AvailabilityRow = { user_id: string; starts_at: string; ends_at: string };
 
 function fail(context: string, error: { message: string } | null): never {
@@ -43,7 +43,7 @@ async function hydrateSessions(rows: SessionRow[]): Promise<SessionWithDetails[]
 
   const [coursesResult, membersResult, roomsResult, policiesResult] = await Promise.all([
     client.from("courses").select("id, code, name, school").in("id", courseIds),
-    client.from("session_members").select("session_id, user_id").in("session_id", sessionIds),
+    client.from("session_members").select("*").in("session_id", sessionIds),
     roomIds.length
       ? client
           .from("rooms")
@@ -107,6 +107,7 @@ async function hydrateSessions(rows: SessionRow[]): Promise<SessionWithDetails[]
     return {
       ...session,
       memberIds,
+      checkIns: Object.fromEntries(memberRows.filter(member => member.session_id === row.id && member.checked_in_at).map(member => [member.user_id, member.checked_in_at!])),
       course,
       creator,
       members: memberIds.map((id) => profiles.get(id)).filter((user): user is User => Boolean(user)),
@@ -202,6 +203,17 @@ async function submitAvailability(
     p_slots: slots.map((slot) => ({ start_at: slot.start, end_at: slot.end })),
   });
   if (error) fail("Could not save availability", error);
+  const session = await getSession(sessionId);
+  if (!session) return;
+  const result = await calculateBestTime(sessionId);
+  const state = matchedSessionState(session, result);
+  const { error: updateError } = await getSupabaseServerClient().from("sessions").update({
+    status: state.status,
+    confirmed_start: state.confirmedSlot?.start ?? null,
+    confirmed_end: state.confirmedSlot?.end ?? null,
+    room_id: state.roomId ?? null,
+  }).eq("id", sessionId);
+  if (updateError) fail("Availability saved, but could not update the matched time", updateError);
 }
 
 async function calculateBestTime(sessionId: string) {
@@ -233,6 +245,14 @@ async function calculateBestTime(sessionId: string) {
 }
 
 export const supabaseRepository: StudySyncRepository = {
+  async checkIn(sessionId, userId) {
+    const { data, error } = await getSupabaseServerClient().rpc("check_in_session", {
+      p_session_id: sessionId, p_user_id: userId,
+    });
+    if (error) throw new Error(error.message);
+    if (typeof data !== "string") throw new Error("invalid_check_in_response");
+    return data;
+  },
   async updateCapacity(sessionId, userId, minPeople, maxPeople) {
     const { error } = await getSupabaseServerClient().rpc("update_session_capacity", {
       p_session_id: sessionId, p_user_id: userId,

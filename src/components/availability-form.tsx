@@ -2,6 +2,7 @@
 
 import { type FormEvent, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { AvailabilitySlot, BestTimeResult } from "@/lib/domain/types";
 import { LocalTime } from "@/components/local-time";
 
@@ -16,6 +17,7 @@ export function AvailabilityForm(props: { sessionId: string; initialSlots: Avail
   return ready ? <AvailabilityEditor {...props} /> : <p role="status">Loading your saved availability…</p>;
 }
 function AvailabilityEditor({ sessionId, initialSlots }: { sessionId: string; initialSlots: AvailabilitySlot[] }) {
+  const router = useRouter();
   const [slots, setSlots] = useState(() => initialSlots.length ? initialSlots.map(slot => ({ start: localInput(slot.start), end: localInput(slot.end) })) : [{ start: "", end: "" }]);
   const [result, setResult] = useState<BestTimeResult | null>(null);
   const [error, setError] = useState("");
@@ -42,6 +44,8 @@ function AvailabilityEditor({ sessionId, initialSlots }: { sessionId: string; in
       if (response.status === 404) return;
       if (!response.ok) throw new Error("Your availability was saved, but matching could not finish. Please try again.");
       setResult((await response.json()).data);
+      router.push(`/sessions/${sessionId}`);
+      router.refresh();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Something went wrong."); }
     finally { setPending(false); }
   }

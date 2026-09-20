@@ -21,6 +21,7 @@ export interface StudySyncRepository {
   updateCapacity(sessionId: string, userId: string, minPeople: number, maxPeople: number): Promise<void>;
   joinSession(sessionId: string, userId: string): Promise<Session>;
   leaveSession(sessionId: string, userId: string): Promise<void>;
+  checkIn(sessionId: string, userId: string): Promise<string>;
   getAvailability(sessionId: string, userId: string): Promise<AvailabilitySlot[]>;
   submitAvailability(
     sessionId: string,

@@ -1,4 +1,4 @@
-import type { AvailabilitySlot, BestTimeResult } from "@/lib/domain/types";
+import type { AvailabilitySlot, BestTimeResult, Session } from "@/lib/domain/types";
 
 export function calculateBestOverlap(
   availabilityByUser: Record<string, AvailabilitySlot[]>,
@@ -43,5 +43,17 @@ export function calculateBestOverlap(
     end: new Date(best.end).toISOString(),
     availableCount: best.availableCount,
     totalCount: users.length,
+  };
+}
+
+// Keep later progress only while the selected time is unchanged.
+export function matchedSessionState(session: Session, result: BestTimeResult | null): Pick<Session, "status" | "confirmedSlot" | "roomId"> {
+  if (result && session.confirmedSlot && Date.parse(session.confirmedSlot.start) === Date.parse(result.start) && Date.parse(session.confirmedSlot.end) === Date.parse(result.end)) {
+    return { status: session.status === "open" || session.status === "group_formed" ? "time_matched" : session.status, confirmedSlot: session.confirmedSlot, roomId: session.roomId };
+  }
+  return {
+    status: result ? "time_matched" : session.memberIds.length >= session.minPeople ? "group_formed" : "open",
+    confirmedSlot: result ? { start: result.start, end: result.end } : undefined,
+    roomId: undefined,
   };
 }
