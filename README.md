@@ -63,3 +63,16 @@ OpenAI continues to analyze course materials and power study chat. Meta Muse Spa
 Set `META_API_KEY` in `.env.local` to your Meta Model API key and optionally set `META_MODEL` (default `muse-spark-1.3`), then restart the dev server. Keep the existing `OPENAI_API_KEY` and `OPENAI_MODEL`. Meta calls use `https://api.meta.ai/v1`; see https://dev.meta.ai/docs/overview. Deployments need the same server-side environment variables. Never use a NEXT_PUBLIC prefix for API keys.
 
 Only signed-in session members can generate a plan. The request sends member names, declared strengths and needs, session context, and course policy to Meta, without uploading source files or sending chat history. Plans are ephemeral drafts, visible only on the requesting page, and are not saved or accepted on anyone’s behalf. Assignment plans require an explicit policy allowing collaboration and discussion without an instructor-review flag. Missing credentials and provider failures show errors; they never silently switch providers.
+
+### Deepgram challenge: Speak to learn
+
+Course pages now offer opt-in voice practice with Deepgram Voice Agent API:
+- **Language conversation:** English role play, adaptive questions, and grammar feedback.
+- **Any subject:** explain a concept aloud, answer follow-up questions, and receive hints.
+- Live transcript, interruptible spoken replies, explicit start/end controls, and a 10-minute session limit.
+
+Set `DEEPGRAM_API_KEY` in `.env.local` with a Member-or-higher Deepgram key, then restart the app. The authenticated `/api/courses/[id]/voice` endpoint exchanges the server key for a 30-second token; the permanent key never goes to the browser. Deepgram manages transcription, the configured hosted thinking model, and speech synthesis. This path does not require the app's OpenAI key. Use localhost or HTTPS for microphone access. Voice practice currently supports English; it does not assess pronunciation or read uploaded materials. StudySync does not persist audio or transcripts; audio is sent to Deepgram and its configured AI provider during practice.
+
+Demo: open a course → choose Language conversation → start and role-play a conversation; then choose Any subject and explain a concept aloud. This provides an integration/demo narrative for a Deepgram challenge entry, not confirmation of eligibility or submission.
+
+Reference: https://developers.deepgram.com/docs/browser-agent-javascript

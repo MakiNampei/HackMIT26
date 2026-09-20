@@ -49,6 +49,13 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      <section className="card" aria-labelledby="voice-practice-heading" style={{ marginTop: '1.5rem' }}>
+        <p className="eyebrow">Speak to learn · Deepgram</p>
+        <h2 id="voice-practice-heading">Voice practice</h2>
+        <p>Practice English conversation or explain any subject aloud with an AI study partner.</p>
+        <Link className="button secondary" href="/courses">Choose a course for voice practice <ArrowRight size={17} /></Link>
+      </section>
+
       <section>
         <div className="section-heading">
           <div>
