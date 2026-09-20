@@ -19,10 +19,13 @@ async function group(type: "study" | "assignment" = "study") {
 
 it("does not leave a nonempty group without an active organizer after organizer departure", async () => {
   const session = await group();
-  // A rejected departure or an ownership transfer is acceptable; a successful orphaning is not.
-  await repository.leaveSession(session.id, "user-maki").catch(() => undefined);
+  await repository.leaveSession(session.id, "user-maki");
   const remaining = (await repository.getSession(session.id))!;
-  expect(remaining.memberIds).toContain(remaining.creatorId);
+  expect(remaining.creatorId).toBe("user-alex");
+  expect(remaining.memberIds).not.toContain("user-maki");
+  await repository.selectRoom(session.id, "user-alex", "demo-room-4");
+  await repository.confirmSession(session.id, "user-alex", { ...remaining.confirmedSlot!, roomId: "demo-room-4" });
+  expect((await repository.getSession(session.id))?.status).toBe("confirmed");
 });
 
 it("does not carry an old check-in into a newly scheduled meeting", async () => {
@@ -72,4 +75,27 @@ it("invalidates a confirmed assignment when its course policy prohibits collabor
   await repository.confirmSession(session.id, "user-maki", { ...session.confirmedSlot!, roomId: session.roomId! });
   await repository.saveCoursePolicy(session.courseId, { ...policy, id: crypto.randomUUID(), collaborationAllowed: false }, "Updated syllabus");
   expect(await repository.getSession(session.id)).toMatchObject({ status: "group_formed", confirmedSlot: undefined, roomId: undefined });
+});
+
+it("preserves a check-in when the effective schedule is unchanged", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-09-22T20:05:00Z"));
+  const session = await group();
+  const timestamp = await repository.checkIn(session.id, "user-maki");
+  await repository.submitAvailability(session.id, "user-maki", original);
+  expect((await repository.getSession(session.id))?.checkIns?.["user-maki"]).toBe(timestamp);
+});
+
+it("gives the first member of an empty group organizer authority", async () => {
+  const session = await group();
+  for (const member of [...session.memberIds]) await repository.leaveSession(session.id, member);
+  await repository.joinSession(session.id, "user-sophia");
+  expect((await repository.getSession(session.id))?.creatorId).toBe("user-sophia");
+});
+
+it("merges unsorted nested and touching intervals without mutating inputs", () => {
+  const a = [window("20:30", "21:00"), window("20:15", "20:25"), window("20:00", "20:30")];
+  const before = JSON.stringify(a);
+  expect(calculateBestOverlap({ a, b: [window("20:00", "21:00")] }, 60, 2)?.availableCount).toBe(2);
+  expect(JSON.stringify(a)).toBe(before);
 });

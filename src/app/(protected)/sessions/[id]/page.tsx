@@ -46,7 +46,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
         </div>
         <div className="page-actions">
           {session.memberIds.includes(user.id) ? <>
-            {session.confirmedSlot && <CheckInButton key={`${session.id}-${user.id}`} sessionId={session.id} startsAt={session.confirmedSlot.start} checkedInAt={session.checkIns?.[user.id]} />}
+            {session.confirmedSlot && <CheckInButton key={`${session.id}-${user.id}-${session.confirmedSlot.start}-${session.confirmedSlot.end}`} sessionId={session.id} startsAt={session.confirmedSlot.start} checkedInAt={session.checkIns?.[user.id]} />}
             {session.confirmedSlot && <a className="button secondary" href="#choose-room">{session.roomId ? "Change room" : "Choose a room"}</a>}
             <Link className="button" href={`/sessions/${session.id}/availability`}>Set my availability</Link>
             <details className="more-menu"><summary>More</summary><JoinButton key="member" sessionId={session.id} isMember /></details>

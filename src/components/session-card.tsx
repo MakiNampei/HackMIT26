@@ -25,7 +25,7 @@ export function SessionCard({ session, ended = false, userId }: { session: Sessi
       </div>
       <div className="row-between" style={{ marginTop: "auto" }}>
         {userId && session.memberIds.includes(userId) && session.confirmedSlot && (
-          <CheckInButton key={`${session.id}-${userId}`} sessionId={session.id} startsAt={session.confirmedSlot.start} checkedInAt={session.checkIns?.[userId]} />
+          <CheckInButton key={`${session.id}-${userId}-${session.confirmedSlot.start}-${session.confirmedSlot.end}`} sessionId={session.id} startsAt={session.confirmedSlot.start} checkedInAt={session.checkIns?.[userId]} />
         )}
         <div className="avatars" aria-label="Session members">
           {session.members.slice(0, 4).map((member) => (

@@ -25,10 +25,11 @@ SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
 
 - `create_session_with_creator` creates a session and creator membership atomically.
 - `join_session` locks the session row and enforces room capacity during concurrent joins.
-- `leave_session` removes membership and availability atomically; groups below their minimum reopen and clear their confirmed time and room. Creators can leave while retaining historical creator attribution.
+- `leave_session` removes membership and availability atomically; groups below their minimum reopen and clear their confirmed time and room. When the organizer leaves a nonempty group, ownership transfers to the earliest remaining member (joined_at, then user_id). The first member joining an empty group becomes its organizer.
 - `update_session_capacity` lets only the creator change minimum/maximum counts, locks against concurrent joins, and rejects a maximum below current membership. Increasing the minimum clears time/room matching; increasing the maximum beyond room capacity clears the room.
 - `replace_availability` replaces one member's windows in one transaction.
-- Best-time calculation runs deterministically in TypeScript after reading persisted windows.
+- Best-time calculation runs deterministically in TypeScript after merging each member’s touching and overlapping windows.
+- `202609200002_workflow_boundaries.sql` transfers organizer ownership transactionally and resets check-ins in the same transaction when either scheduled endpoint changes; unchanged intervals preserve attendance. Apply this migration to existing Supabase projects before deploying the corresponding app changes.
 - Room recommendations use capacity first and then choose the nearest suitable room.
 
 The migrations enable RLS on all application tables and create profiles from Supabase Auth accounts. Server APIs verify the authenticated user, derive identity from the verified session, and use the server-only repository. Authenticated clients cannot bypass transactional RPCs by directly inserting memberships. Demo identities remain only in seed data.

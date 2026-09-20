@@ -177,7 +177,9 @@ function enrich(session: Session): SessionWithDetails {
 function rematch(session: Session) {
   const windows = Object.fromEntries(session.memberIds.map(id => [id, availability[session.id]?.[id] ?? []]));
   const result = canMatchTime(enrich(session)) ? calculateBestOverlap(windows, session.durationMinutes, session.minPeople) : null;
-  Object.assign(session, matchedSessionState(session, result));
+  const state = matchedSessionState(session, result);
+  if (session.confirmedSlot !== state.confirmedSlot) delete checkIns[session.id];
+  Object.assign(session, state);
 }
 
 export const mockRepository: StudySyncRepository = {
@@ -199,6 +201,7 @@ export const mockRepository: StudySyncRepository = {
     coursePolicies[courseId] = policy;
     for (const session of sessions.filter(item => item.courseId === courseId && item.type === "assignment")) {
       session.policyId = policy.id;
+      delete checkIns[session.id];
       session.confirmedSlot = undefined;
       session.roomId = undefined;
       rematch(session);
@@ -270,6 +273,7 @@ export const mockRepository: StudySyncRepository = {
     session.minPeople = minPeople;
     session.maxPeople = maxPeople;
     if (resetTime) {
+      delete checkIns[session.id];
       session.confirmedSlot = undefined;
       session.roomId = undefined;
       session.status = session.memberIds.length >= minPeople ? "group_formed" : "open";
@@ -289,6 +293,7 @@ export const mockRepository: StudySyncRepository = {
     if (!session) throw new Error("Session not found");
     if (session.memberIds.includes(userId)) return session;
     if (session.memberIds.length >= session.maxPeople) throw new Error("session_full");
+    if (session.memberIds.length === 0) session.creatorId = userId;
     session.memberIds.push(userId);
     if (session.type === "assignment") rematch(session);
     if (session.memberIds.length >= session.minPeople && session.status === "open") session.status = "group_formed";
@@ -299,6 +304,9 @@ export const mockRepository: StudySyncRepository = {
     const session = sessions.find((item) => item.id === sessionId);
     if (!session) throw new Error("Session not found");
     session.memberIds = session.memberIds.filter((id) => id !== userId);
+    if (session.creatorId === userId && session.memberIds.length > 0) {
+      session.creatorId = session.memberIds[0];
+    }
     delete availability[sessionId]?.[userId];
     delete checkIns[sessionId]?.[userId];
     delete policyAcknowledgements[sessionId]?.[userId];
