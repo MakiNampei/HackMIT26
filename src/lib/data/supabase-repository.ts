@@ -1,3 +1,4 @@
+import { canMatchTime, policyAllowsCollaboration } from "@/lib/domain/policy-workflow";
 import type {
   CreateSessionInput,
   SessionFilters,
@@ -25,7 +26,7 @@ import type {
 } from "@/lib/domain/types";
 import { calculateBestOverlap, matchedSessionState } from "@/lib/services/availability";
 
-type MemberRow = { session_id: string; user_id: string; checked_in_at?: string | null };
+type MemberRow = { session_id: string; user_id: string; checked_in_at?: string | null; policy_acknowledged_at?: string | null };
 type AvailabilityRow = { user_id: string; starts_at: string; ends_at: string };
 
 function fail(context: string, error: { message: string } | null): never {
@@ -41,7 +42,7 @@ async function hydrateSessions(rows: SessionRow[]): Promise<SessionWithDetails[]
   const roomIds = [...new Set(rows.flatMap((row) => (row.room_id ? [row.room_id] : [])))];
   const policyIds = [...new Set(rows.flatMap((row) => (row.policy_id ? [row.policy_id] : [])))];
 
-  const [coursesResult, membersResult, roomsResult, policiesResult] = await Promise.all([
+  const [coursesResult, membersResult, roomsResult, policiesResult, coursePoliciesResult] = await Promise.all([
     client.from("courses").select("id, code, name, school").in("id", courseIds),
     client.from("session_members").select("*").in("session_id", sessionIds),
     roomIds.length
@@ -54,15 +55,17 @@ async function hydrateSessions(rows: SessionRow[]): Promise<SessionWithDetails[]
       ? client
           .from("academic_policies")
           .select(
-            "id, collaboration_allowed, discussion_allowed, solution_sharing_allowed, individual_submission_required, comparing_final_answers, summary, evidence, confidence, needs_instructor_review",
+            "id, created_at, collaboration_allowed, discussion_allowed, solution_sharing_allowed, individual_submission_required, comparing_final_answers, summary, evidence, confidence, needs_instructor_review",
           )
           .in("id", policyIds)
       : Promise.resolve({ data: [], error: null }),
+    client.from("academic_policies").select("*").in("course_id", courseIds).eq("prompt_version", "course-policy-v1").order("created_at", { ascending: false }),
   ]);
 
   if (coursesResult.error) fail("Could not load courses", coursesResult.error);
   if (membersResult.error) fail("Could not load session members", membersResult.error);
   if (roomsResult.error) fail("Could not load rooms", roomsResult.error);
+  if (coursePoliciesResult.error) fail("Could not load course policies", coursePoliciesResult.error);
   if (policiesResult.error) fail("Could not load academic policies", policiesResult.error);
 
   const memberRows = (membersResult.data ?? []) as MemberRow[];
@@ -104,16 +107,25 @@ async function hydrateSessions(rows: SessionRow[]): Promise<SessionWithDetails[]
     }
 
     const memberIds = memberIdsBySession.get(row.id) ?? [];
-    return {
+    const policyRow = ((policiesResult.data ?? []) as (PolicyRow & { created_at: string })[]).find(policy => policy.id === row.policy_id);
+    // The legacy timestamp column stores the exact policy version's creation time.
+    // Comparing it for equality prevents an in-flight old confirmation from approving a replacement policy.
+    const policyAcknowledgements = Object.fromEntries(memberRows.filter(member => member.session_id === row.id && policyRow && member.policy_acknowledged_at === policyRow.created_at).map(member => [member.user_id, policyRow!.id]));
+    const coursePolicy = (coursePoliciesResult.data ?? []).find(policy => policy.course_id === row.course_id);
+    const details: SessionWithDetails = {
       ...session,
       memberIds,
+      policyAcknowledgements,
       checkIns: Object.fromEntries(memberRows.filter(member => member.session_id === row.id && member.checked_in_at).map(member => [member.user_id, member.checked_in_at!])),
       course,
       creator,
       members: memberIds.map((id) => profiles.get(id)).filter((user): user is User => Boolean(user)),
       room: row.room_id ? rooms.get(row.room_id) : undefined,
-      policy: row.policy_id ? policies.get(row.policy_id) : undefined,
+      policy: coursePolicy ? mapPolicy(coursePolicy as PolicyRow) : session.type === "assignment" ? undefined : row.policy_id ? policies.get(row.policy_id) : undefined,
+      coursePolicyConfirmed: !!coursePolicy,
     };
+    if (!canMatchTime(details)) Object.assign(details, matchedSessionState(details, null), { room: undefined });
+    return details;
   });
 }
 
@@ -164,6 +176,11 @@ async function createSession(input: CreateSessionInput): Promise<Session> {
     })
     .single();
   if (error) fail("Could not create session", error);
+  const policy = await supabaseRepository.getCoursePolicy(input.courseId);
+  if (policy && input.type === "assignment") {
+    const { error: policyError } = await getSupabaseServerClient().from("sessions").update({ policy_id: policy.id }).eq("id", (data as SessionRow).id);
+    if (policyError) fail("Could not link course policy", policyError);
+  }
   return { ...mapSession(data as SessionRow), memberIds: [input.creatorId] };
 }
 
@@ -178,6 +195,7 @@ async function joinSession(sessionId: string, userId: string): Promise<Session> 
     .select("user_id")
     .eq("session_id", sessionId);
   if (membersError) fail("Could not load joined members", membersError);
+  if ((data as SessionRow).type === "assignment") await refreshMatchedTime(sessionId);
   return {
     ...mapSession(data as SessionRow),
     memberIds: (members ?? []).map((member) => member.user_id as string),
@@ -190,6 +208,7 @@ async function leaveSession(sessionId: string, userId: string): Promise<void> {
     p_user_id: userId,
   });
   if (error) fail("Could not leave session", error);
+  if ((await getSession(sessionId))?.type === "assignment") await refreshMatchedTime(sessionId);
 }
 
 async function submitAvailability(
@@ -203,20 +222,29 @@ async function submitAvailability(
     p_slots: slots.map((slot) => ({ start_at: slot.start, end_at: slot.end })),
   });
   if (error) fail("Could not save availability", error);
+  await refreshMatchedTime(sessionId);
+}
+
+async function refreshMatchedTime(sessionId: string) {
   const session = await getSession(sessionId);
   if (!session) return;
   const result = await calculateBestTime(sessionId);
   const state = matchedSessionState(session, result);
-  const { error: updateError } = await getSupabaseServerClient().from("sessions").update({
+  let update = getSupabaseServerClient().from("sessions").update({
     status: state.status,
     confirmed_start: state.confirmedSlot?.start ?? null,
     confirmed_end: state.confirmedSlot?.end ?? null,
     room_id: state.roomId ?? null,
   }).eq("id", sessionId);
+
+  update = session.policyId ? update.eq("policy_id", session.policyId) : update.is("policy_id", null);
+  const { error: updateError } = await update;
   if (updateError) fail("Availability saved, but could not update the matched time", updateError);
 }
 
 async function calculateBestTime(sessionId: string) {
+  const session = await getSession(sessionId);
+  if (!session || !canMatchTime(session)) return null;
   const client = getSupabaseServerClient();
   const [sessionResult, membersResult, availabilityResult] = await Promise.all([
     client.from("sessions").select("duration_minutes, min_people").eq("id", sessionId).maybeSingle(),
@@ -245,6 +273,58 @@ async function calculateBestTime(sessionId: string) {
 }
 
 export const supabaseRepository: StudySyncRepository = {
+  async getCoursePolicy(courseId) {
+    const { data, error } = await getSupabaseServerClient().from("academic_policies").select("*").eq("course_id", courseId).eq("prompt_version", "course-policy-v1").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (error) fail("Could not load course policy", error);
+    return data ? mapPolicy(data as PolicyRow) : null;
+  },
+  async saveCoursePolicy(courseId, policy, sourceName) {
+    const client = getSupabaseServerClient();
+    const { error } = await client.from("academic_policies").insert({
+      id: policy.id, course_id: courseId, source_name: sourceName, document_hash: policy.id, prompt_version: "course-policy-v1",
+      collaboration_allowed: policy.collaborationAllowed, discussion_allowed: policy.discussionAllowed,
+      solution_sharing_allowed: policy.solutionSharingAllowed, individual_submission_required: policy.individualSubmissionRequired,
+      comparing_final_answers: policy.comparingFinalAnswers, summary: policy.summary, evidence: policy.evidence,
+      confidence: policy.confidence, needs_instructor_review: policy.needsInstructorReview,
+    });
+    if (error) fail("Could not save course policy", error);
+    const { data: sessions, error: sessionsError } = await client.from("sessions").update({ policy_id: policy.id, confirmed_start: null, confirmed_end: null, room_id: null, status: "open" }).eq("course_id", courseId).eq("type", "assignment").select("id");
+    if (sessionsError) fail("Course policy saved, but sessions could not be updated", sessionsError);
+    for (const session of sessions ?? []) await refreshMatchedTime(session.id);
+  },
+  async savePolicy(sessionId, userId, policy, sourceName) {
+    const session = await getSession(sessionId);
+    if (!session || session.creatorId !== userId || !session.memberIds.includes(userId)) throw new Error("creator_only");
+    const client = getSupabaseServerClient();
+    const { error } = await client.from("academic_policies").insert({
+      id: policy.id, course_id: session.courseId, source_name: sourceName,
+      document_hash: policy.id,
+      collaboration_allowed: policy.collaborationAllowed, discussion_allowed: policy.discussionAllowed,
+      solution_sharing_allowed: policy.solutionSharingAllowed, individual_submission_required: policy.individualSubmissionRequired,
+      comparing_final_answers: policy.comparingFinalAnswers, summary: policy.summary,
+      evidence: policy.evidence, confidence: policy.confidence, needs_instructor_review: policy.needsInstructorReview,
+    });
+    if (error) fail("Could not save policy", error);
+    const { error: linkError } = await client.from("sessions").update({
+      policy_id: policy.id, confirmed_start: null, confirmed_end: null, room_id: null,
+      status: session.memberIds.length >= session.minPeople ? "group_formed" : "open",
+    }).eq("id", sessionId).eq("creator_id", userId);
+    if (linkError) fail("Could not attach policy", linkError);
+  },
+  async acknowledgePolicy(sessionId, userId, policyId) {
+    const session = await getSession(sessionId);
+    if (!session?.memberIds.includes(userId)) throw new Error("not_a_session_member");
+    if (session.policyId !== policyId) throw new Error("policy_changed");
+    if (!policyAllowsCollaboration(session.policy)) throw new Error("policy_needs_clarification");
+    const client = getSupabaseServerClient();
+    const { data: policy, error } = await client.from("academic_policies").select("created_at").eq("id", policyId).single();
+    if (error) fail("Could not load policy version", error);
+    const { error: ackError } = await client.from("session_members").update({ policy_acknowledged_at: policy.created_at }).eq("session_id", sessionId).eq("user_id", userId);
+    if (ackError) fail("Could not confirm policy", ackError);
+    const current = await getSession(sessionId);
+    if (current?.policyId !== policyId) throw new Error("policy_changed");
+    await refreshMatchedTime(sessionId);
+  },
   async checkIn(sessionId, userId) {
     const { data, error } = await getSupabaseServerClient().rpc("check_in_session", {
       p_session_id: sessionId, p_user_id: userId,

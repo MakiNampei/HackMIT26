@@ -75,6 +75,7 @@ export type AcademicPolicy = {
 };
 
 export type SessionWithDetails = Session & {
+  coursePolicyConfirmed?: boolean;
   policyAcknowledgements?: Record<string, string>;
   checkIns?: Record<string, string>;
   course: Course;

@@ -81,7 +81,7 @@ export default async function DashboardPage() {
             <h2 id="past-sessions-heading">Past sessions</h2>
             <p className="subtle">Sessions you organized or joined that have ended, most recent first.</p>
           </div>
-          <span className="pill">{pastSessions.length} {pastSessions.length === 1 ? "session" : "sessions"}</span>
+          <Link className="button secondary" href="/history">View history ({pastSessions.length}) <ArrowRight size={17} /></Link>
         </div>
         {pastSessions.length ? (
           <div className="grid two">

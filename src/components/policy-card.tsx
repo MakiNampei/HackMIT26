@@ -21,7 +21,7 @@ export function PolicyCard({ policy }: { policy: AcademicPolicy }) {
         <div className="policy-grid">
           <div className="policy-rule"><strong>Discuss approaches</strong><br /><span className="meta-row"><Value value={policy.discussionAllowed} /></span></div>
           <div className="policy-rule"><strong>Share solutions</strong><br /><span className="meta-row"><Value value={policy.solutionSharingAllowed} /></span></div>
-          <div className="policy-rule"><strong>Individual submission</strong><br /><span className="meta-row"><Value value={policy.individualSubmissionRequired} /></span></div>
+          <div className="policy-rule"><strong>Individual submission</strong><br /><span className="meta-row">{policy.individualSubmissionRequired === null ? "Unclear" : policy.individualSubmissionRequired ? "Required" : "Not required"}</span></div>
           <div className="policy-rule"><strong>Confidence</strong><br />{Math.round(policy.confidence * 100)}%</div>
         </div>
       </div>

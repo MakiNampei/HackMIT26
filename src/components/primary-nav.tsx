@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, LayoutDashboard, PlusCircle } from "lucide-react";
+import { BookOpen, History, LayoutDashboard, PlusCircle } from "lucide-react";
 const items = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/history", label: "History", icon: History },
   { href: "/courses", label: "Courses", icon: BookOpen },
   { href: "/sessions/new", label: "Create session", icon: PlusCircle },
 ];

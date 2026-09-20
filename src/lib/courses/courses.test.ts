@@ -46,3 +46,17 @@ describe('course document boundaries', () => {
     expect(mock.getClient).not.toHaveBeenCalled();
   });
 });
+
+it('requires a reviewed policy before creating a course', async () => {
+  mock.getUser.mockResolvedValue({ id: 'alice' });
+  const response = await createCourse(new Request('http://localhost/api/courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: 'CSE 330', name: 'Web Development', school: 'WashU' }) }));
+  expect(response.status).toBe(400);
+  expect(mock.getClient).not.toHaveBeenCalled();
+});
+
+it('rejects forged policy confirmation before writing course data', async () => {
+  mock.getUser.mockResolvedValue({ id: 'alice' });
+  const response = await createCourse(new Request('http://localhost/api/courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: 'CSE 330', name: 'Web Development', school: 'WashU', acknowledged: true, policyToken: 'forged' }) }));
+  expect(response.status).toBe(400);
+  expect(mock.getClient).not.toHaveBeenCalled();
+});

@@ -1,3 +1,6 @@
+import { CourseForm } from '@/components/course-form';
+import { PolicyCard } from '@/components/policy-card';
+import { repository } from '@/lib/data/repository';
 import Link from 'next/link';
 import { CourseVoicePractice } from '@/components/course-voice-practice';
 import { notFound } from 'next/navigation';
@@ -10,6 +13,7 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const { data: course } = await getSupabaseServerClient().from('courses').select('id,code,name,school').eq('id',id).maybeSingle();
   if (!course) notFound();
+  const policy = await repository.getCoursePolicy(id);
   const materials = await listMaterials(user.id, id);
-  return <><Link className="subtle" href="/courses">← All courses</Link><header className="page-header" style={{ marginTop: '1.5rem' }}><div><p className="eyebrow">{course.code} · {course.school}</p><h1>{course.name}</h1></div><Link className="button secondary" href={`/sessions/new?courseId=${encodeURIComponent(id)}`}>Create session</Link></header><CourseVoicePractice courseId={id} courseName={course.name} /><MaterialLibrary courseId={id} initialMaterials={materials} /></>;
+  return <><Link className="subtle" href="/courses">← All courses</Link><header className="page-header" style={{ marginTop: '1.5rem' }}><div><p className="eyebrow">{course.code} · {course.school}</p><h1>{course.name}</h1></div><Link className="button secondary" href={`/sessions/new?courseId=${encodeURIComponent(id)}`}>Create session</Link></header>{policy ? <PolicyCard policy={policy} /> : <CourseForm courseId={id} />}<CourseVoicePractice courseId={id} courseName={course.name} /><MaterialLibrary courseId={id} initialMaterials={materials} /></>;
 }

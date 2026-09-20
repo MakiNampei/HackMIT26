@@ -150,12 +150,13 @@ const availability: Record<string, Record<string, AvailabilitySlot[]>> = {
   },
 };
 
+const coursePolicies: Record<string, AcademicPolicy> = {};
 const policyAcknowledgements: Record<string, Record<string, string>> = {};
 
 const checkIns: Record<string, Record<string, string>> = {};
 
 function enrich(session: Session): SessionWithDetails {
-  return {
+  const details: SessionWithDetails = {
     ...session,
     policyAcknowledgements: { ...policyAcknowledgements[session.id] },
     checkIns: { ...checkIns[session.id] },
@@ -163,8 +164,11 @@ function enrich(session: Session): SessionWithDetails {
     creator: users.find((user) => user.id === session.creatorId)!,
     members: session.memberIds.map((id) => users.find((user) => user.id === id)!),
     room: rooms.find((room) => room.id === session.roomId),
-    policy: policies.find((policy) => policy.id === session.policyId),
+    policy: coursePolicies[session.courseId] ?? policies.find((policy) => policy.id === session.policyId),
+    coursePolicyConfirmed: !!coursePolicies[session.courseId],
   };
+  if (!canMatchTime(details)) Object.assign(details, matchedSessionState(details, null), { room: undefined });
+  return details;
 }
 
 function rematch(session: Session) {
@@ -174,6 +178,16 @@ function rematch(session: Session) {
 }
 
 export const mockRepository: StudySyncRepository = {
+  async getCoursePolicy(courseId) { return coursePolicies[courseId] ?? null; },
+  async saveCoursePolicy(courseId, policy) {
+    coursePolicies[courseId] = policy;
+    for (const session of sessions.filter(item => item.courseId === courseId && item.type === "assignment")) {
+      session.policyId = policy.id;
+      session.confirmedSlot = undefined;
+      session.roomId = undefined;
+      rematch(session);
+    }
+  },
   async savePolicy(sessionId, userId, policy) {
     const session = sessions.find(item => item.id === sessionId);
     if (!session || session.creatorId !== userId || !session.memberIds.includes(userId)) throw new Error("creator_only");

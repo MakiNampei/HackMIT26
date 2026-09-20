@@ -1,3 +1,4 @@
+import { canMatchTime, sessionChecklist } from "@/lib/domain/policy-workflow";
 import { SessionProgressRefresh } from "@/components/session-progress-refresh";
 import { CheckInButton } from "@/components/check-in-button";
 import { SessionChat } from "@/components/session-chat";
@@ -12,7 +13,7 @@ import { PolicyCard } from "@/components/policy-card";
 import { SessionCapacityForm } from "@/components/session-capacity-form";
 import { repository } from "@/lib/data/repository";
 
-const steps = ["Group formed", "Time matched", "Policy verified", "Room selected", "Confirmed"];
+
 
 export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
@@ -26,7 +27,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
     slots: (await repository.getAvailability(id, member.id)).slice().sort((a, b) => Date.parse(a.start) - Date.parse(b.start)),
   }))) : [];
 
-  const completed = session.status === "confirmed" ? 5 : session.status === "room_selected" ? 4 : session.status === "policy_verified" ? 3 : session.status === "time_matched" ? 2 : session.status === "group_formed" ? 1 : 0;
+  const steps = sessionChecklist(session);
 
   return (
     <>
@@ -49,6 +50,13 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
 
       <div className="detail-layout">
         <div className="grid">
+          {session.type === "assignment" && session.coursePolicyConfirmed && <section className="card" aria-label="Course policy status">
+            <strong>Course policy confirmed</strong>
+            <p className="subtle">You have reviewed and saved this policy on the course page. No additional policy confirmation is needed here.</p>
+            {!canMatchTime(session) && <p className="notice">Time matching is paused: the policy does not clearly permit collaboration for this assignment. Individual and group assignments may have different rules; check the instructions for this specific assignment or ask your instructor.</p>}
+            <Link className="button secondary" href={`/courses/${session.courseId}`}>View course policy</Link>
+          </section>}
+          {session.type === "assignment" && (session.policy ? <PolicyCard policy={session.policy} /> : <section className="card"><h2>Course policy pending</h2><p className="subtle">Complete policy setup on the course page before assignment time matching.</p><Link className="button secondary" href={`/courses/${session.courseId}`}>View course</Link></section>)}
           <section className="card">
             <div className="row-between">
               <div>
@@ -99,7 +107,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           {(session.type === "study" || session.type === "exam_review") && (
             <SessionChat key={`chat-${session.id}`} sessionId={session.id} topic={session.topic} examReview={session.type === "exam_review"} isMember={session.memberIds.includes(user.id)} />
           )}
-          {session.policy && <PolicyCard policy={session.policy} />}
+          {session.type !== "assignment" && session.policy && <PolicyCard policy={session.policy} />}
           <SessionGroupPlan key={`group-plan-${session.id}`} sessionId={session.id} isMember={session.memberIds.includes(user.id)} />
         </div>
 
@@ -112,9 +120,9 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
             <h2>Session checklist</h2>
             <ol className="timeline">
               {steps.map((step, index) => (
-                <li className={index < completed ? "done" : ""} key={step}>
-                  <span className="timeline-dot">{index < completed ? <Check size={14} /> : index + 1}</span>
-                  {step}
+                <li className={step.done ? "done" : ""} key={step.label}>
+                  <span className="timeline-dot">{step.done ? <Check size={14} /> : index + 1}</span>
+                  {step.label}
                 </li>
               ))}
             </ol>

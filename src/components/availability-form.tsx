@@ -20,6 +20,7 @@ function AvailabilityEditor({ sessionId, initialSlots }: { sessionId: string; in
   const router = useRouter();
   const [slots, setSlots] = useState(() => initialSlots.length ? initialSlots.map(slot => ({ start: localInput(slot.start), end: localInput(slot.end) })) : [{ start: "", end: "" }]);
   const [result, setResult] = useState<BestTimeResult | null>(null);
+  const [policyPending, setPolicyPending] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
@@ -29,7 +30,7 @@ function AvailabilityEditor({ sessionId, initialSlots }: { sessionId: string; in
     setSaved(false); setResult(null);
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setPending(true); setError(""); setSaved(false); setResult(null);
+    event.preventDefault(); setPolicyPending(false); setPending(true); setError(""); setSaved(false); setResult(null);
     try {
       const values = slots.map(slot => {
         const start = new Date(slot.start), end = new Date(slot.end);
@@ -41,6 +42,7 @@ function AvailabilityEditor({ sessionId, initialSlots }: { sessionId: string; in
       if (!save.ok) throw new Error(body?.error ?? "Could not save availability. Please try again.");
       setSaved(true);
       const response = await fetch(`/api/sessions/${sessionId}/best-time`);
+      if (response.status === 409) { setPolicyPending(true); return; }
       if (response.status === 404) return;
       if (!response.ok) throw new Error("Your availability was saved, but matching could not finish. Please try again.");
       setResult((await response.json()).data);
@@ -64,8 +66,8 @@ function AvailabilityEditor({ sessionId, initialSlots }: { sessionId: string; in
       <button disabled={pending} type="submit">{pending ? "Saving and finding a match…" : "Save availability"}</button>
     </form>
     <section className="card">
-      <p className="eyebrow">Group schedule</p><h2>{result ? "Suggested meeting time" : saved ? "Waiting for a shared time" : "Find a time together"}</h2>
-      {result ? <><strong><LocalTime start={result.start} /></strong><p className="subtle">{result.availableCount} of {result.totalCount} students available. This suggestion is not a confirmation.</p></> : <p className="subtle">{saved ? "No time meets the minimum group size yet. Other members can add or update their availability." : "Save your available windows to see the earliest time that works for the most people."}</p>}
+      <p className="eyebrow">Group schedule</p><h2>{result ? "Suggested meeting time" : saved ? policyPending ? "Course policy pending" : "Waiting for a shared time" : "Find a time together"}</h2>
+      {result ? <><strong><LocalTime start={result.start} /></strong><p className="subtle">{result.availableCount} of {result.totalCount} students available. This suggestion is not a confirmation.</p></> : <p className="subtle">{saved ? policyPending ? "Your times are saved. Complete policy setup on the course page; matching starts automatically once the course policy permits collaboration." : "No time meets the minimum group size yet. Other members can add or update their availability." : "Save your available windows to see the earliest time that works for the most people."}</p>}
       <Link className="button secondary" href={`/sessions/${sessionId}`}>Back to session</Link>
     </section>
   </div>;
