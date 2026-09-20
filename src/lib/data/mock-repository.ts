@@ -1,11 +1,12 @@
 import { demoRooms } from "./demo-rooms";
 import { validateRoomSelection, validateSessionConfirmation } from "@/lib/services/room";
 import { canMatchTime, policyAllowsCollaboration } from "@/lib/domain/policy-workflow";
-import type { CreateSessionInput, StudySyncRepository } from "@/lib/data/contracts";
+import type { CreateGoalInput, CreateSessionInput, StudySyncRepository } from "@/lib/data/contracts";
 import type {
   AcademicPolicy,
   AvailabilitySlot,
   Course,
+  Goal,
   Room,
   Session,
   SessionWithDetails,
@@ -157,6 +158,7 @@ const coursePolicies: Record<string, AcademicPolicy> = {};
 const policyAcknowledgements: Record<string, Record<string, string>> = {};
 
 const checkIns: Record<string, Record<string, string>> = {};
+const goals: Goal[] = [];
 
 function enrich(session: Session): SessionWithDetails {
   const details: SessionWithDetails = {
@@ -183,6 +185,22 @@ function rematch(session: Session) {
 }
 
 export const mockRepository: StudySyncRepository = {
+  async listGoals(userId) {
+    return goals.filter((goal) => goal.ownerId === userId);
+  },
+  async getGoal(id, userId) {
+    return goals.find((goal) => goal.id === id && goal.ownerId === userId) ?? null;
+  },
+  async createGoal(input: CreateGoalInput) {
+    if (!courses.some((course) => course.id === input.courseId)) throw new Error("course_not_found");
+    const goal: Goal = {
+      ...input,
+      id: `goal-${crypto.randomUUID()}`,
+      createdAt: new Date().toISOString(),
+    };
+    goals.unshift(goal);
+    return goal;
+  },
   async confirmSession(sessionId, userId, expected) {
     const session = sessions.find(item => item.id === sessionId);
     validateSessionConfirmation(session ? enrich(session) : null, userId, expected);
@@ -243,6 +261,7 @@ export const mockRepository: StudySyncRepository = {
     return sessions
       .filter((session) => !filters?.courseId || session.courseId === filters.courseId)
       .filter((session) => !filters?.status || session.status === filters.status)
+      .filter((session) => !filters?.goalId || session.goalId === filters.goalId)
       .map(enrich);
   },
 

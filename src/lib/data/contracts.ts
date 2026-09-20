@@ -3,6 +3,7 @@ import type {
   AvailabilitySlot,
   BestTimeResult,
   Course,
+  Goal,
   Session,
   SessionWithDetails,
 } from "@/lib/domain/types";
@@ -10,9 +11,11 @@ import type {
 export type SessionFilters = {
   courseId?: string;
   status?: Session["status"];
+  goalId?: string;
 };
 
 export type CreateSessionInput = Omit<Session, "id" | "status" | "memberIds">;
+export type CreateGoalInput = Omit<Goal, "id" | "createdAt">;
 
 export interface StudySyncRepository {
   confirmSession(sessionId: string, userId: string, expected: AvailabilitySlot & { roomId: string }): Promise<void>;
@@ -22,6 +25,9 @@ export interface StudySyncRepository {
   savePolicy(sessionId: string, userId: string, policy: AcademicPolicy, sourceName: string): Promise<void>;
   acknowledgePolicy(sessionId: string, userId: string, policyId: string): Promise<void>;
   listCourses(): Promise<Course[]>;
+  listGoals(userId: string): Promise<Goal[]>;
+  getGoal(id: string, userId: string): Promise<Goal | null>;
+  createGoal(input: CreateGoalInput): Promise<Goal>;
   listSessions(filters?: SessionFilters): Promise<SessionWithDetails[]>;
   getSession(id: string): Promise<SessionWithDetails | null>;
   createSession(input: CreateSessionInput): Promise<Session>;

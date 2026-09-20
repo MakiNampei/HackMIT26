@@ -9,11 +9,13 @@ import type {
 import { getSupabaseServerClient } from "@/lib/data/supabase-client";
 import {
   mapCourse,
+  mapGoal,
   mapPolicy,
   mapProfile,
   mapRoom,
   mapSession,
   type CourseRow,
+  type GoalRow,
   type PolicyRow,
   type ProfileRow,
   type RoomRow,
@@ -22,6 +24,7 @@ import {
 import type {
   AvailabilitySlot,
   Course,
+  Goal,
   Session,
   SessionWithDetails,
   User,
@@ -140,6 +143,27 @@ async function listCourses(): Promise<Course[]> {
   return ((data ?? []) as CourseRow[]).map(mapCourse);
 }
 
+async function listGoals(userId: string): Promise<Goal[]> {
+  const { data, error } = await getSupabaseServerClient()
+    .from("goal_journeys")
+    .select("*")
+    .eq("owner_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) fail("Could not list goals", error);
+  return ((data ?? []) as GoalRow[]).map(mapGoal);
+}
+
+async function getGoal(id: string, userId: string): Promise<Goal | null> {
+  const { data, error } = await getSupabaseServerClient()
+    .from("goal_journeys")
+    .select("*")
+    .eq("id", id)
+    .eq("owner_id", userId)
+    .maybeSingle();
+  if (error) fail("Could not load goal", error);
+  return data ? mapGoal(data as GoalRow) : null;
+}
+
 async function listSessions(filters?: SessionFilters): Promise<SessionWithDetails[]> {
   let query = getSupabaseServerClient()
     .from("sessions")
@@ -147,6 +171,7 @@ async function listSessions(filters?: SessionFilters): Promise<SessionWithDetail
     .order("created_at", { ascending: false });
   if (filters?.courseId) query = query.eq("course_id", filters.courseId);
   if (filters?.status) query = query.eq("status", filters.status);
+  if (filters?.goalId) query = query.eq("goal_id", filters.goalId);
   const { data, error } = await query;
   if (error) fail("Could not list sessions", error);
   return hydrateSessions((data ?? []) as SessionRow[]);
@@ -178,12 +203,19 @@ async function createSession(input: CreateSessionInput): Promise<Session> {
     })
     .single();
   if (error) fail("Could not create session", error);
+  if (input.goalId) {
+    const { error: goalError } = await getSupabaseServerClient().rpc("link_session_to_goal", {
+      p_session_id: (data as SessionRow).id,
+      p_goal_id: input.goalId,
+    });
+    if (goalError) fail("Session created, but could not link the goal", goalError);
+  }
   const policy = await supabaseRepository.getCoursePolicy(input.courseId);
   if (policy && input.type === "assignment") {
     const { error: policyError } = await getSupabaseServerClient().from("sessions").update({ policy_id: policy.id }).eq("id", (data as SessionRow).id);
     if (policyError) fail("Could not link course policy", policyError);
   }
-  return { ...mapSession(data as SessionRow), memberIds: [input.creatorId] };
+  return { ...mapSession(data as SessionRow), goalId: input.goalId, memberIds: [input.creatorId] };
 }
 
 async function joinSession(sessionId: string, userId: string): Promise<Session> {
@@ -278,6 +310,21 @@ async function calculateBestTime(sessionId: string) {
 }
 
 export const supabaseRepository: StudySyncRepository = {
+  listGoals,
+  getGoal,
+  async createGoal(input) {
+    const { data, error } = await getSupabaseServerClient().from("goal_journeys").insert({
+      owner_id: input.ownerId,
+      course_id: input.courseId,
+      type: input.type,
+      title: input.title,
+      description: input.description,
+      target_date: input.targetDate,
+      duration_minutes: input.durationMinutes,
+    }).select("*").single();
+    if (error) fail("Could not create goal", error);
+    return mapGoal(data as GoalRow);
+  },
   async confirmSession(sessionId, userId, expected) {
     const session = await getSession(sessionId);
     validateSessionConfirmation(session, userId, expected);

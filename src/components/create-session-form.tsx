@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState, useSyncExternalStore } from "react";
 import type { Course } from "@/lib/domain/types";
 
-type Props = { courses: Course[]; initial?: { date?: string; courseId?: string; title?: string; topic?: string; type?: string; sourceName?: string; rules?: string } };
+type Props = { courses: Course[]; initial?: { date?: string; courseId?: string; title?: string; topic?: string; type?: string; sourceName?: string; rules?: string; goalId?: string; goalTitle?: string; durationMinutes?: number } };
 const subscribe = () => () => {};
 export function CreateSessionForm(props: Props) {
   const ready = useSyncExternalStore(subscribe, () => true, () => false);
@@ -51,6 +51,7 @@ function SessionEditor({ courses, initial }: Props) {
           end: endDate.toISOString(),
         },
       ],
+      goalId: initial?.goalId,
     };
 
     try {
@@ -72,6 +73,7 @@ function SessionEditor({ courses, initial }: Props) {
 
   return (
     <form className="card form-card" onSubmit={submit}>
+      {initial?.goalId && <div className="notice goal-context" style={{ marginBottom: "1rem" }}><strong>Part of: {initial.goalTitle}</strong><p>We filled in a starting point. Change the title or focus to match what you need today.</p><Link href={`/goals/${initial.goalId}`}>Back to goal</Link></div>}
       {initial?.sourceName && <div className="notice" style={{ marginBottom: "1rem" }}><strong>Draft from {initial.sourceName}</strong><p>{initial.rules}</p><small>Review the original document and confirm your plan. This is not instructor approval.</small></div>}
       <p className="subtle">Choose a date and available time window in {Intl.DateTimeFormat().resolvedOptions().timeZone}. The group’s final time will be matched within this window.</p>
       <div className="form-grid">
@@ -110,7 +112,7 @@ function SessionEditor({ courses, initial }: Props) {
         </div>
         <div className="field">
           <label htmlFor="durationMinutes">Duration</label>
-          <select id="durationMinutes" name="durationMinutes" defaultValue="90">
+          <select id="durationMinutes" name="durationMinutes" defaultValue={String(initial?.durationMinutes ?? 90)}>
             <option value="60">60 minutes</option>
             <option value="90">90 minutes</option>
             <option value="120">120 minutes</option>

@@ -243,6 +243,35 @@ h2 {
   font-weight: 700;
 }
 
+.goal-card {
+  display: grid;
+  gap: 0.8rem;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.goal-card:hover {
+  border-color: rgba(23, 107, 77, 0.55);
+  transform: translateY(-2px);
+}
+
+.goal-card h3,
+.goal-empty h3,
+.goal-context p {
+  margin-bottom: 0;
+}
+
+.goal-empty {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.goal-context {
+  border-color: rgba(23, 107, 77, 0.28);
+  background: var(--green-soft);
+}
+
 .section-heading {
   align-items: center;
   display: flex;
@@ -525,6 +554,11 @@ h2 {
 
   .page-header {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .goal-empty {
+    align-items: stretch;
     flex-direction: column;
   }
 }

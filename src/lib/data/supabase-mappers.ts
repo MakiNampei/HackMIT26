@@ -3,6 +3,7 @@ import type {
   AcademicPolicy,
   AvailabilitySlot,
   Course,
+  Goal,
   PolicyEvidence,
   Room,
   Session,
@@ -10,6 +11,17 @@ import type {
 } from "@/lib/domain/types";
 
 export type CourseRow = { id: string; code: string; name: string; school: string };
+export type GoalRow = {
+  id: string;
+  owner_id: string;
+  course_id: string;
+  type: Goal["type"];
+  title: string;
+  description: string;
+  target_date: string;
+  duration_minutes: number;
+  created_at: string;
+};
 export type ProfileRow = {
   id: string;
   display_name: string;
@@ -53,6 +65,7 @@ export type SessionRow = {
   confirmed_end: string | null;
   room_id: string | null;
   policy_id: string | null;
+  goal_id?: string | null;
 };
 
 function isAvailabilitySlot(value: unknown): value is AvailabilitySlot {
@@ -72,6 +85,18 @@ function isPolicyEvidence(value: unknown): value is PolicyEvidence {
 }
 
 export const mapCourse = (row: CourseRow): Course => ({ ...row });
+
+export const mapGoal = (row: GoalRow): Goal => ({
+  id: row.id,
+  ownerId: row.owner_id,
+  courseId: row.course_id,
+  type: row.type,
+  title: row.title,
+  description: row.description,
+  targetDate: row.target_date,
+  durationMinutes: row.duration_minutes,
+  createdAt: row.created_at,
+});
 
 export const mapProfile = (row: ProfileRow): User => ({
   id: row.id,
@@ -130,6 +155,6 @@ export const mapSession = (row: SessionRow): Session => {
     confirmedSlot,
     roomId: row.room_id ?? undefined,
     policyId: row.policy_id ?? undefined,
+    goalId: row.goal_id ?? undefined,
   };
 };
-

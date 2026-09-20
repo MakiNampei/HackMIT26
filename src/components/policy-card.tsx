@@ -25,8 +25,8 @@ export function PolicyCard({ policy }: { policy: AcademicPolicy }) {
           <div className="policy-rule"><strong>Confidence</strong><br />{Math.round(policy.confidence * 100)}%</div>
         </div>
       </div>
-      {policy.evidence.map((evidence) => (
-        <div className="meta-row subtle" key={`${evidence.source}-${evidence.page}`} style={{ alignItems: "flex-start", fontSize: "0.82rem", marginTop: "0.9rem" }}>
+      {policy.evidence.map((evidence, index) => (
+        <div className="meta-row subtle" key={`${evidence.source}-${evidence.page ?? "none"}-${evidence.quote}-${index}`} style={{ alignItems: "flex-start", fontSize: "0.82rem", marginTop: "0.9rem" }}>
           <FileText size={16} />
           <span>“{evidence.quote}”<br /><strong>{evidence.source}{evidence.page ? ` · p. ${evidence.page}` : ""}</strong></span>
         </div>

@@ -1,5 +1,19 @@
 export type SessionType = "study" | "assignment" | "exam_review";
 
+export type GoalType = "review" | "preview" | "project" | "homework";
+
+export type Goal = {
+  id: string;
+  ownerId: string;
+  courseId: string;
+  type: GoalType;
+  title: string;
+  description: string;
+  targetDate: string;
+  durationMinutes: number;
+  createdAt: string;
+};
+
 export type SessionStatus =
   | "open"
   | "group_formed"
@@ -44,6 +58,7 @@ export type Session = {
   confirmedSlot?: AvailabilitySlot;
   roomId?: string;
   policyId?: string;
+  goalId?: string;
 };
 
 export type Room = {

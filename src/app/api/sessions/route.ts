@@ -23,6 +23,13 @@ export async function POST(request: Request) {
     );
   }
 
+  if (parsed.data.goalId) {
+    const goal = await repository.getGoal(parsed.data.goalId, user.id);
+    if (!goal || goal.courseId !== parsed.data.courseId) {
+      return NextResponse.json({ error: "This goal cannot be linked to the selected course" }, { status: 400 });
+    }
+  }
+
   const session = await repository.createSession(parsed.data);
   return NextResponse.json(
     {

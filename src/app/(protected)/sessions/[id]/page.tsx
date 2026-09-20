@@ -24,6 +24,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const session = await repository.getSession(id);
   if (!session) notFound();
+  const linkedGoal = session.goalId ? await repository.getGoal(session.goalId, user.id) : null;
 
   const isMember = session.memberIds.includes(user.id);
   const memberAvailability = isMember ? await Promise.all(session.members.map(async member => ({
@@ -56,6 +57,9 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
 
       <div className="detail-layout">
         <div className="grid">
+          {linkedGoal && <section className="card goal-context">
+            <div className="row-between"><div><p className="eyebrow">Part of a long-term goal</p><h2>{linkedGoal.title}</h2><p className="subtle">This session is one step toward the goal. Your focus can still change whenever you need.</p></div><Link className="button secondary" href={`/goals/${linkedGoal.id}`}>View goal</Link></div>
+          </section>}
           {session.type === "assignment" && session.coursePolicyConfirmed && <section className="card" aria-label="Course policy status">
             <strong>Course policy confirmed</strong>
             <p className="subtle">You have reviewed and saved this policy on the course page. No additional policy confirmation is needed here.</p>

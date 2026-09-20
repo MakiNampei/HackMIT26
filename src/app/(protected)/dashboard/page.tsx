@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth/server";
-import { ArrowRight, CalendarCheck, ListTodo, Sparkles, Users } from "lucide-react";
+import { ArrowRight, CalendarCheck, Flag, ListTodo, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { SessionBrowser } from "@/components/session-browser";
@@ -9,7 +9,10 @@ import { repository } from "@/lib/data/repository";
 export default async function DashboardPage() {
   const user = await requireUser();
   await connection();
-  const sessions = await repository.listSessions();
+  const [sessions, goals] = await Promise.all([
+    repository.listSessions(),
+    repository.listGoals(user.id),
+  ]);
   // This server component reads the request time after awaiting connection().
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
@@ -54,6 +57,30 @@ export default async function DashboardPage() {
           <span className="metric-icon"><CalendarCheck size={21} /></span>
           <span><strong className="metric-value">{upcomingMeetups.length}</strong><span className="subtle">Upcoming meetups</span></span>
         </div>
+      </section>
+
+      <section aria-labelledby="goals-heading">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Optional · Keep the bigger picture</p>
+            <h2 id="goals-heading">My long-term goals</h2>
+          </div>
+          <Link className="button secondary" href="/goals/new"><Flag size={17} /> New goal</Link>
+        </div>
+        {goals.length ? <div className="grid two">
+          {goals.map((goal) => {
+            const linkedSessions = sessions.filter((session) => session.goalId === goal.id).length;
+            return <Link className="card goal-card" href={`/goals/${goal.id}`} key={goal.id}>
+              <div className="row-between"><span className="pill">{goal.type}</span><span className="subtle">Due {goal.targetDate}</span></div>
+              <h3>{goal.title}</h3>
+              <p className="subtle">{goal.description}</p>
+              <div className="row-between"><span className="subtle">{linkedSessions} linked {linkedSessions === 1 ? "session" : "sessions"}</span><strong>Continue goal →</strong></div>
+            </Link>;
+          })}
+        </div> : <div className="card goal-empty">
+          <div><h3>Working toward something bigger?</h3><p className="subtle">Save one goal, then use it to start focused sessions without planning from scratch.</p></div>
+          <Link className="button" href="/goals/new">Create a goal <ArrowRight size={17} /></Link>
+        </div>}
       </section>
 
       <section className="card" aria-labelledby="voice-practice-heading" style={{ marginTop: '1.5rem' }}>
