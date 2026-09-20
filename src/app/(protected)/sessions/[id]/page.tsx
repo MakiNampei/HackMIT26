@@ -7,6 +7,7 @@ import { SessionProgressRefresh } from "@/components/session-progress-refresh";
 import { CheckInButton } from "@/components/check-in-button";
 import { SessionChat } from "@/components/session-chat";
 import { SessionGroupPlan } from "@/components/session-group-plan";
+import { SessionGroupSync } from "@/components/session-group-sync";
 import { LocalTime } from "@/components/local-time";
 import { requireUser } from "@/lib/auth/server";
 import { Check, Clock3, MapPin, Users } from "lucide-react";
@@ -24,9 +25,14 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const session = await repository.getSession(id);
   if (!session) notFound();
-  const linkedGoal = session.goalId ? await repository.getGoal(session.goalId, user.id) : null;
-
   const isMember = session.memberIds.includes(user.id);
+  const linkedGoal = session.goalId ? await repository.getGoal(session.goalId, user.id) : null;
+  const [syncCheckins, syncBrief] = isMember && linkedGoal
+    ? await Promise.all([
+        repository.listSessionSyncCheckins(id),
+        repository.getSessionSyncBrief(id),
+      ])
+    : [[], null];
   const memberAvailability = isMember ? await Promise.all(session.members.map(async member => ({
     member,
     slots: (await repository.getAvailability(id, member.id)).slice().sort((a, b) => Date.parse(a.start) - Date.parse(b.start)),
@@ -124,7 +130,9 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
             <p className="subtle">Import course documents to prepare for this session. These files and analyses are private to you and also appear in your course library. They are not shared with the group. Once analyzed, they can inform your next message to the study assistant in Study and Exam review sessions.</p>
             {materials ? <MaterialLibrary courseId={session.courseId} initialMaterials={materials} sessionContext /> : <p role="alert">Your materials could not be loaded. Refresh to try again or <Link href={`/courses/${session.courseId}`}>open the course library</Link>.</p>}
           </details>}
-          <SessionGroupPlan key={`group-plan-${session.id}`} sessionId={session.id} isMember={session.memberIds.includes(user.id)} />
+          {linkedGoal && isMember
+            ? <SessionGroupSync key={`group-sync-${session.id}`} sessionId={session.id} members={session.members} currentUserId={user.id} initialCheckins={syncCheckins} initialBrief={syncBrief} />
+            : !session.goalId && <SessionGroupPlan key={`group-plan-${session.id}`} sessionId={session.id} isMember={isMember} />}
         </div>
 
         <aside className="grid" style={{ alignContent: "start" }}>

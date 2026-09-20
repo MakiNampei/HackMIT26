@@ -7,6 +7,8 @@ import type {
   PolicyEvidence,
   Room,
   Session,
+  SessionSyncBrief,
+  SessionSyncCheckin,
   User,
 } from "@/lib/domain/types";
 
@@ -21,6 +23,21 @@ export type GoalRow = {
   target_date: string;
   duration_minutes: number;
   created_at: string;
+};
+export type SessionSyncCheckinRow = {
+  session_id: string;
+  user_id: string;
+  progress: SessionSyncCheckin["progress"];
+  today_goal: string;
+  work_style: SessionSyncCheckin["workStyle"];
+  blocker: string | null;
+  updated_at: string;
+};
+export type SessionSyncBriefRow = {
+  session_id: string;
+  content: string;
+  model_name: string;
+  generated_at: string;
 };
 export type ProfileRow = {
   id: string;
@@ -96,6 +113,23 @@ export const mapGoal = (row: GoalRow): Goal => ({
   targetDate: row.target_date,
   durationMinutes: row.duration_minutes,
   createdAt: row.created_at,
+});
+
+export const mapSessionSyncCheckin = (row: SessionSyncCheckinRow): SessionSyncCheckin => ({
+  sessionId: row.session_id,
+  userId: row.user_id,
+  progress: row.progress,
+  todayGoal: row.today_goal,
+  workStyle: row.work_style,
+  blocker: row.blocker ?? undefined,
+  updatedAt: row.updated_at,
+});
+
+export const mapSessionSyncBrief = (row: SessionSyncBriefRow): SessionSyncBrief => ({
+  sessionId: row.session_id,
+  content: row.content,
+  modelName: row.model_name,
+  generatedAt: row.generated_at,
 });
 
 export const mapProfile = (row: ProfileRow): User => ({

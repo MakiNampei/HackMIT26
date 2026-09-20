@@ -44,4 +44,17 @@ describe("goal journeys", () => {
     expect(await mockRepository.listGoals("someone-else")).not.toContainEqual(goal);
     expect(await mockRepository.listSessions({ goalId: goal.id })).toHaveLength(1);
   });
+
+  it("persists each member's progress sync and the shared brief", async () => {
+    const checkin = await mockRepository.saveSessionSyncCheckin("sync-session", "sync-user", {
+      progress: "in_progress",
+      todayGoal: "Finish the database schema",
+      workStyle: "independent_then_regroup",
+      blocker: "Need to verify permissions",
+    });
+    expect(await mockRepository.listSessionSyncCheckins("sync-session")).toContainEqual(checkin);
+
+    const brief = await mockRepository.saveSessionSyncBrief("sync-session", "GROUP SYNC BRIEF", "muse-spark-1.3", "sync-user");
+    expect(await mockRepository.getSessionSyncBrief("sync-session")).toEqual(brief);
+  });
 });

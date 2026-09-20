@@ -9,6 +9,8 @@ import type {
   Goal,
   Room,
   Session,
+  SessionSyncBrief,
+  SessionSyncCheckin,
   SessionWithDetails,
   User,
 } from "@/lib/domain/types";
@@ -159,6 +161,8 @@ const policyAcknowledgements: Record<string, Record<string, string>> = {};
 
 const checkIns: Record<string, Record<string, string>> = {};
 const goals: Goal[] = [];
+const sessionSyncCheckins: SessionSyncCheckin[] = [];
+const sessionSyncBriefs: SessionSyncBrief[] = [];
 
 function enrich(session: Session): SessionWithDetails {
   const details: SessionWithDetails = {
@@ -189,7 +193,10 @@ export const mockRepository: StudySyncRepository = {
     return goals.filter((goal) => goal.ownerId === userId);
   },
   async getGoal(id, userId) {
-    return goals.find((goal) => goal.id === id && goal.ownerId === userId) ?? null;
+    const goal = goals.find((item) => item.id === id);
+    if (!goal) return null;
+    if (goal.ownerId === userId) return goal;
+    return sessions.some((session) => session.goalId === id && session.memberIds.includes(userId)) ? goal : null;
   },
   async createGoal(input: CreateGoalInput) {
     if (!courses.some((course) => course.id === input.courseId)) throw new Error("course_not_found");
@@ -200,6 +207,26 @@ export const mockRepository: StudySyncRepository = {
     };
     goals.unshift(goal);
     return goal;
+  },
+  async listSessionSyncCheckins(sessionId) {
+    return sessionSyncCheckins.filter((item) => item.sessionId === sessionId);
+  },
+  async saveSessionSyncCheckin(sessionId, userId, input) {
+    const saved: SessionSyncCheckin = { ...input, sessionId, userId, updatedAt: new Date().toISOString() };
+    const index = sessionSyncCheckins.findIndex((item) => item.sessionId === sessionId && item.userId === userId);
+    if (index >= 0) sessionSyncCheckins[index] = saved;
+    else sessionSyncCheckins.push(saved);
+    return saved;
+  },
+  async getSessionSyncBrief(sessionId) {
+    return sessionSyncBriefs.find((item) => item.sessionId === sessionId) ?? null;
+  },
+  async saveSessionSyncBrief(sessionId, content, modelName) {
+    const saved: SessionSyncBrief = { sessionId, content, modelName, generatedAt: new Date().toISOString() };
+    const index = sessionSyncBriefs.findIndex((item) => item.sessionId === sessionId);
+    if (index >= 0) sessionSyncBriefs[index] = saved;
+    else sessionSyncBriefs.push(saved);
+    return saved;
   },
   async confirmSession(sessionId, userId, expected) {
     const session = sessions.find(item => item.id === sessionId);

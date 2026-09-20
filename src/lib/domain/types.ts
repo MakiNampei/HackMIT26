@@ -14,6 +14,26 @@ export type Goal = {
   createdAt: string;
 };
 
+export type SyncProgress = "starting" | "in_progress" | "comfortable" | "ahead";
+export type SyncWorkStyle = "together" | "independent_then_regroup" | "explain" | "example";
+
+export type SessionSyncCheckin = {
+  sessionId: string;
+  userId: string;
+  progress: SyncProgress;
+  todayGoal: string;
+  workStyle: SyncWorkStyle;
+  blocker?: string;
+  updatedAt: string;
+};
+
+export type SessionSyncBrief = {
+  sessionId: string;
+  content: string;
+  modelName: string;
+  generatedAt: string;
+};
+
 export type SessionStatus =
   | "open"
   | "group_formed"

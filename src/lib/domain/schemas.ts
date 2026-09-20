@@ -10,6 +10,13 @@ export const createGoalSchema = z.object({
   durationMinutes: z.coerce.number().int().min(30).max(240).multipleOf(15),
 }).strict();
 
+export const sessionSyncCheckinSchema = z.object({
+  progress: z.enum(["starting", "in_progress", "comfortable", "ahead"]),
+  todayGoal: z.string().trim().min(2).max(160),
+  workStyle: z.enum(["together", "independent_then_regroup", "explain", "example"]),
+  blocker: z.string().trim().max(160).optional().transform((value) => value || undefined),
+}).strict();
+
 export const sessionCapacitySchema = z.object({
   minPeople: z.number().int().min(2).max(12),
   maxPeople: z.number().int().min(2).max(20),

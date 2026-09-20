@@ -3,6 +3,7 @@ import { validateRoomSelection, validateSessionConfirmation } from "@/lib/servic
 import { canMatchTime, policyAllowsCollaboration } from "@/lib/domain/policy-workflow";
 import type {
   CreateSessionInput,
+  SaveSessionSyncInput,
   SessionFilters,
   StudySyncRepository,
 } from "@/lib/data/contracts";
@@ -14,18 +15,24 @@ import {
   mapProfile,
   mapRoom,
   mapSession,
+  mapSessionSyncBrief,
+  mapSessionSyncCheckin,
   type CourseRow,
   type GoalRow,
   type PolicyRow,
   type ProfileRow,
   type RoomRow,
   type SessionRow,
+  type SessionSyncBriefRow,
+  type SessionSyncCheckinRow,
 } from "@/lib/data/supabase-mappers";
 import type {
   AvailabilitySlot,
   Course,
   Goal,
   Session,
+  SessionSyncBrief,
+  SessionSyncCheckin,
   SessionWithDetails,
   User,
 } from "@/lib/domain/types";
@@ -154,14 +161,86 @@ async function listGoals(userId: string): Promise<Goal[]> {
 }
 
 async function getGoal(id: string, userId: string): Promise<Goal | null> {
-  const { data, error } = await getSupabaseServerClient()
+  const client = getSupabaseServerClient();
+  const { data, error } = await client
     .from("goal_journeys")
     .select("*")
     .eq("id", id)
-    .eq("owner_id", userId)
     .maybeSingle();
   if (error) fail("Could not load goal", error);
-  return data ? mapGoal(data as GoalRow) : null;
+  if (!data) return null;
+  const goal = mapGoal(data as GoalRow);
+  if (goal.ownerId === userId) return goal;
+
+  const { data: linkedSessions, error: linkedError } = await client
+    .from("sessions")
+    .select("id")
+    .eq("goal_id", id);
+  if (linkedError) fail("Could not check goal access", linkedError);
+  const sessionIds = (linkedSessions ?? []).map((session) => session.id as string);
+  if (!sessionIds.length) return null;
+  const { data: membership, error: membershipError } = await client
+    .from("session_members")
+    .select("session_id")
+    .in("session_id", sessionIds)
+    .eq("user_id", userId)
+    .limit(1);
+  if (membershipError) fail("Could not check goal membership", membershipError);
+  return membership?.length ? goal : null;
+}
+
+async function listSessionSyncCheckins(sessionId: string): Promise<SessionSyncCheckin[]> {
+  const { data, error } = await getSupabaseServerClient()
+    .from("session_sync_checkins")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("updated_at");
+  if (error) fail("Could not load progress sync", error);
+  return ((data ?? []) as SessionSyncCheckinRow[]).map(mapSessionSyncCheckin);
+}
+
+async function saveSessionSyncCheckin(sessionId: string, userId: string, input: SaveSessionSyncInput): Promise<SessionSyncCheckin> {
+  const { data, error } = await getSupabaseServerClient()
+    .from("session_sync_checkins")
+    .upsert({
+      session_id: sessionId,
+      user_id: userId,
+      progress: input.progress,
+      today_goal: input.todayGoal,
+      work_style: input.workStyle,
+      blocker: input.blocker ?? null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "session_id,user_id" })
+    .select("*")
+    .single();
+  if (error) fail("Could not save progress sync", error);
+  return mapSessionSyncCheckin(data as SessionSyncCheckinRow);
+}
+
+async function getSessionSyncBrief(sessionId: string): Promise<SessionSyncBrief | null> {
+  const { data, error } = await getSupabaseServerClient()
+    .from("session_sync_briefs")
+    .select("session_id, content, model_name, generated_at")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  if (error) fail("Could not load group sync brief", error);
+  return data ? mapSessionSyncBrief(data as SessionSyncBriefRow) : null;
+}
+
+async function saveSessionSyncBrief(sessionId: string, content: string, modelName: string, userId: string): Promise<SessionSyncBrief> {
+  const { data, error } = await getSupabaseServerClient()
+    .from("session_sync_briefs")
+    .upsert({
+      session_id: sessionId,
+      content,
+      model_name: modelName,
+      generated_by: userId,
+      generated_at: new Date().toISOString(),
+    }, { onConflict: "session_id" })
+    .select("session_id, content, model_name, generated_at")
+    .single();
+  if (error) fail("Could not save group sync brief", error);
+  return mapSessionSyncBrief(data as SessionSyncBriefRow);
 }
 
 async function listSessions(filters?: SessionFilters): Promise<SessionWithDetails[]> {
@@ -312,6 +391,10 @@ async function calculateBestTime(sessionId: string) {
 export const supabaseRepository: StudySyncRepository = {
   listGoals,
   getGoal,
+  listSessionSyncCheckins,
+  saveSessionSyncCheckin,
+  getSessionSyncBrief,
+  saveSessionSyncBrief,
   async createGoal(input) {
     const { data, error } = await getSupabaseServerClient().from("goal_journeys").insert({
       owner_id: input.ownerId,
