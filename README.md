@@ -4,35 +4,76 @@
 
 StudySync turns scattered course files into safe, actionable study sessions. It helps students understand collaboration rules, find compatible classmates, agree on a time, and choose a study space in one workflow.
 
-## What works in the framework
+## Features
 
 - Real Supabase email/password registration, login, confirmation, persistent sessions, and logout.
 - Protected pages and APIs with server-verified identity.
 - Course creation, private PDF/text uploads, real AI material analysis with source quotes, and study-session drafts.
 - Dropbox Chooser import integration (requires a Dropbox app key).
-- Responsive dashboard and session cards.
+- Responsive dashboard, session calendar, attendance check-in, and past-session history.
+- Long-term goals with linked study sessions, member Progress Sync, and saved Meta Group Sync Briefs.
+- In-app start/end reminders while the app is open; these are not background push notifications.
+- Study chat grounded in the signed-in user’s analyzed course materials for Study and Exam review sessions.
 - Create, join, availability, session-detail, policy, room, and confirmation views.
 - Full API contract for sessions, joining, availability, best-time calculation, and policy analysis.
 - Mock repository and seeded demo data so frontend and database work can happen in parallel.
 - Supabase/Postgres repository, migration, seed data, transactional RPCs, and Row Level Security.
 - Deterministic matching and availability utilities with tests.
-- OpenAI Responses API adapter with Structured Outputs, disabled by default in demo mode.
+- OpenAI Responses API integration with Structured Outputs for material and policy analysis.
 
 ## Run locally
 
-```bash
-corepack pnpm dev
-```
-
-Open `http://localhost:3000/login`. Configure Supabase and apply all migrations following [the setup guide](./docs/SUPABASE.md) before registering real accounts.
-
-Dependencies are already installed in the current workspace. If `node_modules` is removed later, restore dependencies with the repository package manager:
+Run the commands below from this repository directory (the one containing `package.json`). Use Node.js 22+ and pnpm via Corepack; if your Node installation does not include Corepack, install it first.
 
 ```bash
 corepack pnpm install
+cp .env.example .env.local
 ```
 
-To configure local environment values, copy `.env.example` to `.env.local`. Never commit real credentials. `OPENAI_LIVE_MODE=false` keeps policy analysis deterministic; live mode should be enabled only with a valid server-side key.
+Before starting the app:
+
+1. Configure the Supabase URL, public anon/publishable key, and server-only service-role key in `.env.local`, with `DATA_BACKEND=supabase`.
+2. Apply **all** files in `supabase/migrations/` in filename order, then `supabase/seed.sql`. Follow [the Supabase setup guide](./docs/SUPABASE.md) for email authentication and confirmation URLs.
+3. Create the private course-material storage bucket:
+
+   ```bash
+   node --env-file=.env.local scripts/setup-course-storage.mjs
+   ```
+
+4. Configure the optional integrations below for the features you want to use, then start the app:
+
+   ```bash
+   corepack pnpm dev
+   ```
+
+Open [the login page](http://localhost:3000/login), register an account, and confirm your email before signing in. Restart the dev server after changing environment variables. Never commit `.env.local` or real credentials.
+
+### Environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| `DATA_BACKEND` | Use `supabase` for persistent application data; `mock` selects in-memory fixtures. |
+| `SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL for the server repository and browser/auth client. Set both to the same project. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public anon/publishable key for Supabase Auth. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only repository and private storage access. |
+| `OPENAI_API_KEY` / `OPENAI_MODEL` | Material analysis, course-policy preview, and study chat; default model is `gpt-5-mini`. |
+| `OPENAI_LIVE_MODE` | Controls the legacy policy-analysis service’s default live/mock behavior. It does **not** disable live material analysis, course-policy preview, or study chat. |
+| `META_API_KEY` / `META_MODEL` | Group plans and Group Sync Briefs; default model is `muse-spark-1.3`. |
+| `NEXT_PUBLIC_DROPBOX_APP_KEY` | Enables Dropbox Chooser after configuring its allowed domains. |
+| `DEEPGRAM_API_KEY` | Enables opt-in voice practice. |
+
+`DATA_BACKEND=mock` is for repository fixtures and tests. It does not bypass Supabase authentication or replace Supabase Storage, so it is not a credential-free browser demo. AI features require their respective provider keys; the core scheduling flow does not require AI keys.
+
+### Development commands
+
+```bash
+corepack pnpm lint
+corepack pnpm test
+corepack pnpm build
+corepack pnpm start # serve a successful production build
+```
+
+Tests cover matching, availability, policy restrictions, membership and capacity, attendance, goals, group sync, and API authorization. Database workflow checks are also available in `supabase/tests/workflow_boundaries.sql` for a configured Supabase test project.
 
 ## Team integration
 
@@ -53,16 +94,21 @@ Key documents:
 - [x] Application scaffold
 - [x] Mock full-stack flow and API boundaries
 - [x] Database handoff contract
-- [x] Working mock end-to-end demo
+- [x] Mock repository fixtures and workflow tests
 - [x] Supabase schema, seed data, repository, transactional writes, and RLS
+- [x] Goal journeys, attendance/history, and group progress synchronization
 
 ## Two AI roles
 
-OpenAI continues to analyze course materials and power study chat. Meta Muse Spark powers the session detail page’s **Generate group plan** button: shared goals, an icebreaker, a discussion agenda, and voluntary roles. Matching, scheduling, and session confirmation remain deterministic.
+OpenAI continues to analyze course materials and power study chat. Meta Muse Spark powers two session coordination flows: **Generate group plan** for standalone sessions (shared goals, an icebreaker, a discussion agenda, and voluntary roles), and **Group Sync Brief** for goal-linked sessions. Matching, scheduling, and session confirmation remain deterministic.
 
-Set `META_API_KEY` in `.env.local` to your Meta Model API key and optionally set `META_MODEL` (default `muse-spark-1.3`), then restart the dev server. Keep the existing `OPENAI_API_KEY` and `OPENAI_MODEL`. Meta calls use `https://api.meta.ai/v1`; see https://dev.meta.ai/docs/overview. Deployments need the same server-side environment variables. Never use a NEXT_PUBLIC prefix for API keys.
+Set `META_API_KEY` in `.env.local` to your Meta Model API key and optionally set `META_MODEL` (default `muse-spark-1.3`), then restart the dev server. Keep the existing `OPENAI_API_KEY` and `OPENAI_MODEL`. Meta calls use `https://api.meta.ai/v1`; see the [Meta API documentation](https://dev.meta.ai/docs/overview). Deployments need the same server-side environment variables. Never use a NEXT_PUBLIC prefix for API keys.
 
-Only signed-in session members can generate a plan. The request sends member names, declared strengths and needs, session context, and course policy to Meta, without uploading source files or sending chat history. Plans are ephemeral drafts, visible only on the requesting page, and are not saved or accepted on anyone’s behalf. Assignment plans require an explicit policy allowing collaboration and discussion without an instructor-review flag. Missing credentials and provider failures show errors; they never silently switch providers.
+Only signed-in session members can generate a plan or brief. For standalone group plans, the request sends member names, declared strengths and needs, session context, and course policy to Meta, without uploading source files or sending chat history. Standalone group plans are ephemeral drafts, visible only on the requesting page, and are not saved or accepted on anyone’s behalf. Assignment plans require an explicit policy allowing collaboration and discussion without an instructor-review flag. Missing credentials and provider failures show errors; they never silently switch providers.
+
+For goal-linked sessions, every member first completes **Progress Sync** with their progress, today’s goal, preferred work style, and optional blocker. Meta receives these check-ins, member names, the linked goal, session context, and course policy to generate an agenda and personal wins. These briefs are saved through the repository and shown to session members; they remain drafts and do not change schedules or book rooms. Apply migrations through `202609200004_group_sync.sql` to enable this flow.
+
+Room selection and confirmation record the group’s choice in StudySync; they do not reserve a room through a campus booking system. Demo rooms are labeled in the UI.
 
 ### Deepgram challenge: Speak to learn
 
@@ -75,4 +121,4 @@ Set `DEEPGRAM_API_KEY` in `.env.local` with a Member-or-higher Deepgram key, the
 
 Demo: open a course → choose Language conversation → start and role-play a conversation; then choose Any subject and explain a concept aloud. This provides an integration/demo narrative for a Deepgram challenge entry, not confirmation of eligibility or submission.
 
-Reference: https://developers.deepgram.com/docs/browser-agent-javascript
+Reference: [Deepgram browser voice agent guide](https://developers.deepgram.com/docs/browser-agent-javascript)
