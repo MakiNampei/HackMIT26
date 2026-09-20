@@ -55,3 +55,11 @@ Key documents:
 - [x] Database handoff contract
 - [x] Working mock end-to-end demo
 - [x] Supabase schema, seed data, repository, transactional writes, and RLS
+
+## Two AI roles
+
+OpenAI continues to analyze course materials and power study chat. Meta Muse Spark powers the session detail page’s **Generate group plan** button: shared goals, an icebreaker, a discussion agenda, and voluntary roles. Matching, scheduling, and session confirmation remain deterministic.
+
+Set `META_API_KEY` in `.env.local` to your Meta Model API key and optionally set `META_MODEL` (default `muse-spark-1.3`), then restart the dev server. Keep the existing `OPENAI_API_KEY` and `OPENAI_MODEL`. Meta calls use `https://api.meta.ai/v1`; see https://dev.meta.ai/docs/overview. Deployments need the same server-side environment variables. Never use a NEXT_PUBLIC prefix for API keys.
+
+Only signed-in session members can generate a plan. The request sends member names, declared strengths and needs, session context, and course policy to Meta, without uploading source files or sending chat history. Plans are ephemeral drafts, visible only on the requesting page, and are not saved or accepted on anyone’s behalf. Assignment plans require an explicit policy allowing collaboration and discussion without an instructor-review flag. Missing credentials and provider failures show errors; they never silently switch providers.

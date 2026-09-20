@@ -37,7 +37,7 @@ export function SessionCapacityForm({ sessionId, minPeople, maxPeople, memberCou
     <section className="card">
       <p className="eyebrow">Creator settings</p>
       <h2>Group size</h2>
-      <p className="subtle">{memberCount} students joined. Counts include the creator when they are a member.</p>
+      <p className="subtle">{memberCount} students joined. Counts include the session creator when they are a member.</p>
       <form onSubmit={save} className="grid" style={{ marginTop: "1rem" }}>
         <div className="field">
           <label htmlFor="edit-min-people">Minimum students</label>

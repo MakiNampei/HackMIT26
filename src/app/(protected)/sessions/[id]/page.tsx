@@ -1,3 +1,5 @@
+import { SessionChat } from "@/components/session-chat";
+import { SessionGroupPlan } from "@/components/session-group-plan";
 import { LocalTime } from "@/components/local-time";
 import { requireUser } from "@/lib/auth/server";
 import { Check, Clock3, MapPin, Users } from "lucide-react";
@@ -57,7 +59,11 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
               <span className="subtle">{session.memberIds.length} joined</span>
             </div>
           </section>
+          {(session.type === "study" || session.type === "exam_review") && (
+            <SessionChat key={`chat-${session.id}`} sessionId={session.id} topic={session.topic} examReview={session.type === "exam_review"} isMember={session.memberIds.includes(user.id)} />
+          )}
           {session.policy && <PolicyCard policy={session.policy} />}
+          <SessionGroupPlan key={`group-plan-${session.id}`} sessionId={session.id} isMember={session.memberIds.includes(user.id)} />
         </div>
 
         <aside className="grid" style={{ alignContent: "start" }}>
