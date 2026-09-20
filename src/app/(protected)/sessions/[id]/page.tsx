@@ -1,3 +1,5 @@
+import { MaterialLibrary } from "@/components/material-library";
+import { listMaterials } from "@/lib/courses/store";
 import { ConfirmSessionButton } from "@/components/confirm-session-button";
 import { RoomPicker } from "@/components/room-picker";
 import { canMatchTime, sessionChecklist } from "@/lib/domain/policy-workflow";
@@ -29,6 +31,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
     slots: (await repository.getAvailability(id, member.id)).slice().sort((a, b) => Date.parse(a.start) - Date.parse(b.start)),
   }))) : [];
 
+  const materials = isMember ? await listMaterials(user.id, session.courseId).catch(() => null) : null;
   const steps = sessionChecklist(session);
 
   return (
@@ -112,6 +115,11 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
             <SessionChat key={`chat-${session.id}`} sessionId={session.id} topic={session.topic} examReview={session.type === "exam_review"} isMember={session.memberIds.includes(user.id)} />
           )}
           {session.type !== "assignment" && session.policy && <PolicyCard policy={session.policy} />}
+          {isMember && <details className="card">
+            <summary>Study materials · Import from Dropbox</summary>
+            <p className="subtle">Import course documents to prepare for this session. These files and analyses are private to you and also appear in your course library. They are not shared with the group. Once analyzed, they can inform your next message to the study assistant in Study and Exam review sessions.</p>
+            {materials ? <MaterialLibrary courseId={session.courseId} initialMaterials={materials} sessionContext /> : <p role="alert">Your materials could not be loaded. Refresh to try again or <Link href={`/courses/${session.courseId}`}>open the course library</Link>.</p>}
+          </details>}
           <SessionGroupPlan key={`group-plan-${session.id}`} sessionId={session.id} isMember={session.memberIds.includes(user.id)} />
         </div>
 

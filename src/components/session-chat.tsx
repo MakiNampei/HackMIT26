@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUp, MessageCircle, RotateCcw, Sparkles } from 'lucide-react';
 
-type Message = { role: 'user' | 'assistant'; content: string };
+type Message = { role: 'user' | 'assistant'; content: string; context?: { sources: string[]; omitted: number } };
 
 export function SessionChat({ sessionId, topic, examReview, isMember }: {
   sessionId: string; topic: string; examReview: boolean; isMember: boolean;
@@ -52,7 +52,7 @@ export function SessionChat({ sessionId, topic, examReview, isMember }: {
       });
       if (!response.ok) throw new Error(result.error || 'Unable to send your message. Please try again.');
       if (typeof result.message !== 'string' || !result.message.trim()) throw new Error('No response received. Please try again.');
-      setMessages([...next, { role: 'assistant', content: result.message }]);
+      setMessages([...next, { role: 'assistant', content: result.message, context: result.context }]);
     } catch (cause) {
       if (controller.current?.signal.aborted) return;
       setMessages(previous);
@@ -79,10 +79,10 @@ export function SessionChat({ sessionId, topic, examReview, isMember }: {
       </div></div>
       {messages.length > 0 && <button className="secondary" disabled={busy} onClick={() => { setMessages([]); setError(''); setDraft(''); input.current?.focus(); }}><RotateCcw size={15} /> New chat</button>}
     </header>
-    <p className="subtle">Work through a problem, talk through an idea, or shape your next review plan.</p>
+    <p className="subtle">Your analyzed course documents, including Dropbox imports, are sent to the study assistant with each message to help explain concepts and plan your review. Only your own private materials are used; up to 5 documents are included within the context limit.</p>
     <div className="chat-conversation" ref={conversation} role="log" aria-label="Study assistant conversation" aria-live="polite" aria-relevant="additions text">
       {messages.length === 0 && <div className="chat-welcome"><MessageCircle size={28} /><h3>Let’s figure it out together.</h3><p>What would you like to work on{topic ? ` in ${topic}` : ''}? Share a question and what you’ve tried, or choose a starting point below.</p></div>}
-      {messages.map((message, index) => <article key={index} className={`chat-message ${message.role}`}><span className="chat-author">{message.role === 'user' ? 'You' : 'Study partner'}</span><p>{message.content}</p></article>)}
+      {messages.map((message, index) => <article key={index} className={`chat-message ${message.role}`}><span className="chat-author">{message.role === 'user' ? 'You' : 'Study partner'}</span><p>{message.content}</p>{message.context && <small className="subtle">{message.context.sources.length ? `Course context: ${message.context.sources.join(" · ")}` : "No analyzed course documents included; this answer uses session context and general knowledge."}{message.context.omitted > 0 && ` · ${message.context.omitted} document(s) not included (analysis unavailable or context limit).`}</small>}</article>)}
       {busy && <p className="chat-thinking" role="status">Thinking through your question…</p>}
     </div>
     {messages.length === 0 && <div className="chat-prompts">{prompts.map(prompt => <button className="secondary" key={prompt.label} disabled={!isMember || busy} onClick={() => void send(prompt.text)}>{prompt.label}</button>)}</div>}

@@ -25,11 +25,16 @@ The new course-material analysis calls OpenAI directly with `store: false` and t
 1. Create a Dropbox app in https://www.dropbox.com/developers/apps .
 2. Configure its Chooser/Saver domains: `localhost` for development and your deployment hostname for production.
 3. Set `NEXT_PUBLIC_DROPBOX_APP_KEY` in `.env.local` to its app key (not app secret or access token), then restart the dev server.
-4. Open a course and click **Import from Dropbox**. Choose a PDF/TXT/Markdown file.
-5. The browser downloads the selected direct link and uploads a copy into the user's private course library. The expiring Dropbox link is not persisted. AI analysis and session drafting work just like local uploads.
+4. Open a course and click **Import from Dropbox**. Choose up to 5 PDF/TXT/Markdown files. Review each document’s type, then click **Import & analyze**.
+5. Files are processed one at a time with progress. A failed import does not stop the remaining files; successful imports leave the review list to avoid accidental re-imports. Saved files whose analysis failed can use **Retry analysis** on their cards.
+6. The browser downloads the selected direct link and uploads a copy into the user's private course library. The expiring Dropbox link is not persisted. AI analysis and session drafting work just like local uploads.
 
 Chooser is a real Dropbox integration. It uses Dropbox's selection UI and the user's Dropbox session; it does not require our server to hold a Dropbox token. It is not the Codex Dropbox plugin. Until the app key is configured, the button is visibly disabled rather than pretending to import.
 
 ## Demo narrative
 
 Start with scattered syllabus and lecture files in Dropbox. Import them into a course, inspect quotes behind collaboration rules and dates, then create a focused study-session draft from the extracted topics. This demonstrates content becoming an actionable plan. Confirm current sponsor rules separately; API integration alone does not guarantee challenge eligibility.
+
+## Access from a study session
+
+Session members can expand **Study materials · Import from Dropbox** on the session detail page to use the same private course library and batch import. Imports remain private to the current user, are not session attachments, and are not provided to the group coordinator. In Study and Exam review sessions, study chat loads the signed-in user’s analyzed course materials on every message, including new Dropbox imports. Up to 5 documents fitting a 60,000-character context budget are included, newest first. The assistant receives analyses and quoted excerpts, not full files; it is instructed to cite filenames and supplied page numbers. Each reply lists the included documents and the count omitted due to missing analysis or context limits. A library-loading failure returns an explicit retry error rather than silently answering without documents. This view hides the new-session draft button because the user is already in a session.
