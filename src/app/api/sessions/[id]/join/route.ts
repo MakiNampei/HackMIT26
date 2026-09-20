@@ -11,7 +11,11 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   try {
     const session = await repository.joinSession(id, user.id);
     return NextResponse.json({ data: session });
-  } catch {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message === "session_full") return NextResponse.json({ error: "This session is full. Choose another group." }, { status: 409 });
+    if (message === "session_not_found" || message === "Session not found") return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    if (message === "cannot_join_for_another_user") return NextResponse.json({ error: "You can only join for yourself." }, { status: 403 });
+    return NextResponse.json({ error: "Could not join session. Please try again." }, { status: 503 });
   }
 }

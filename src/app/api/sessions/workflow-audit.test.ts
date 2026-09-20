@@ -60,3 +60,13 @@ describe("session API workflow audit", () => {
     expect((await join(request("{}"), context)).status).toBe(409);
   });
 });
+
+it.each([
+  ["session_not_found", 404], ["Session not found", 404],
+  ["cannot_join_for_another_user", 403], ["private database details", 503],
+])("maps join error %s safely", async (message, status) => {
+  mocks.joinSession.mockRejectedValue(new Error(message));
+  const response = await join(request("{}"), context);
+  expect(response.status).toBe(status);
+  expect(await response.text()).not.toContain("private database details");
+});

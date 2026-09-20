@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Please log in first" }, { status: 401 });
-  const parsed = createSessionSchema.safeParse({ ...await request.json(), creatorId: user.id });
+  const body = await request.json().catch(() => null);
+  const parsed = createSessionSchema.safeParse(body && typeof body === "object" && !Array.isArray(body) ? { ...body, creatorId: user.id } : null);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid session", issues: parsed.error.flatten() },
@@ -26,9 +27,7 @@ export async function POST(request: Request) {
   return NextResponse.json(
     {
       data: session,
-      // Route handlers and server-rendered pages may run in separate processes.
-      // Until Supabase persistence is connected, land on the stable seeded demo.
-      navigationId: process.env.DATA_BACKEND === "supabase" ? session.id : "demo-session-1",
+      navigationId: session.id,
     },
     { status: 201 },
   );

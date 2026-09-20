@@ -190,7 +190,10 @@ async function joinSession(sessionId: string, userId: string): Promise<Session> 
   const { data, error } = await getSupabaseServerClient()
     .rpc("join_session", { p_session_id: sessionId, p_user_id: userId })
     .single();
-  if (error) fail("Could not join session", error);
+  if (error) {
+    if (["session_full", "session_not_found", "cannot_join_for_another_user"].includes(error.message)) throw new Error(error.message);
+    fail("Could not join session", error);
+  }
 
   const { data: members, error: membersError } = await getSupabaseServerClient()
     .from("session_members")
@@ -210,7 +213,7 @@ async function leaveSession(sessionId: string, userId: string): Promise<void> {
     p_user_id: userId,
   });
   if (error) fail("Could not leave session", error);
-  if ((await getSession(sessionId))?.type === "assignment") await refreshMatchedTime(sessionId);
+  await refreshMatchedTime(sessionId);
 }
 
 async function submitAvailability(

@@ -302,7 +302,7 @@ export const mockRepository: StudySyncRepository = {
     delete availability[sessionId]?.[userId];
     delete checkIns[sessionId]?.[userId];
     delete policyAcknowledgements[sessionId]?.[userId];
-    if (session.type === "assignment") rematch(session);
+    rematch(session);
     if (session.memberIds.length < session.minPeople) {
       session.status = "open";
       session.confirmedSlot = undefined;
@@ -326,7 +326,7 @@ export const mockRepository: StudySyncRepository = {
     const session = sessions.find((item) => item.id === sessionId);
     if (!session || !canMatchTime(enrich(session))) return null;
     return calculateBestOverlap(
-      availability[sessionId] ?? {},
+      Object.fromEntries(session.memberIds.map(id => [id, availability[sessionId]?.[id] ?? []])),
       session.durationMinutes,
       session.minPeople,
     );

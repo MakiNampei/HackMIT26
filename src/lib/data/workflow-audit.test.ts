@@ -50,3 +50,14 @@ describe("study session workflow audit", () => {
     });
   });
 });
+
+it("preserves confirmation when a departing member does not invalidate the matched time", async () => {
+  const session = await createGroup();
+  await repository.selectRoom(session.id, "user-maki", "demo-room-4");
+  const before = (await repository.getSession(session.id))!;
+  await repository.confirmSession(session.id, "user-maki", { ...before.confirmedSlot!, roomId: before.roomId! });
+  await repository.leaveSession(session.id, "user-ryan");
+  expect(await repository.getSession(session.id)).toMatchObject({
+    status: "confirmed", confirmedSlot: before.confirmedSlot, roomId: before.roomId,
+  });
+});

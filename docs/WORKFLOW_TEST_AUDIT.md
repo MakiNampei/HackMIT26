@@ -1,6 +1,18 @@
 # Workflow test audit — 2026-09-20
 
-## Results
+## Fix verification
+
+The five findings below are the original audit record. The six reproductions now pass.
+
+- Current suite: 25 files, **103 tests passed**, zero failures.
+- Lint, production build (including TypeScript), and `git diff --check` passed.
+- Mock and Supabase repositories now recalculate matching after departures for all session types. A regression test verifies that a still-valid confirmed arrangement is preserved.
+- Mock matching counts all current members. Creation returns the actual new session ID for both backends.
+- Both affected handlers return 400 for malformed JSON. Join errors distinguish capacity conflicts (409), missing sessions (404), identity violations (403), and backend failures (503), without exposing backend details. The join UI displays the API's safe error message.
+- Added five follow-up regression checks for error mapping and confirmation preservation.
+- Mock storage remains process-local fixture storage; cross-process/restart persistence is not provided. Use the Supabase backend for persistent workflows. Live database and browser end-to-end behavior were not exercised in this fix verification.
+
+## Original audit results
 
 - Initial baseline: 22 test files, 84 passing tests.
 - Added 12 tests in `src/lib/data/workflow-audit.test.ts` and `src/app/api/sessions/workflow-audit.test.ts`.

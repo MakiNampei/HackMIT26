@@ -12,7 +12,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Please log in first" }, { status: 401 });
   const { id } = await params;
-  const parsed = submissionSchema.safeParse(await request.json());
+  const parsed = submissionSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid availability", issues: parsed.error.flatten() }, { status: 400 });
   }
