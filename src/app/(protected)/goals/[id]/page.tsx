@@ -18,7 +18,7 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
     .format(new Date(`${goal.targetDate}T00:00:00Z`));
 
   return <>
-    <Link className="back-link" href="/dashboard">← Back to dashboard</Link>
+    <Link className="back-link" href="/goals">← Back to goals</Link>
     <header className="page-header">
       <div>
         <p className="eyebrow">{course?.code ?? "Course"} · {goal.type}</p>
@@ -34,15 +34,8 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
       <div className="card metric-card"><span className="metric-icon"><History size={21} /></span><span><strong className="metric-value">{sessions.length}</strong><span className="subtle">Linked sessions</span></span></div>
     </section>
 
-    <section className="card" style={{ marginTop: "1.5rem" }}>
-      <p className="eyebrow">Choose today&apos;s focus</p>
-      <h2>Start wherever makes sense today</h2>
-      <p className="subtle">Your goal gives the next session context, but it does not lock you to the last session. The session form is prefilled and everything remains editable.</p>
-      <Link className="button" href={`/sessions/new?goalId=${goal.id}`}>{sessions.length ? "Start another session" : "Start the first session"} <ArrowRight size={17} /></Link>
-    </section>
-
     <section style={{ marginTop: "1.5rem" }}>
-      <div className="section-heading"><div><p className="eyebrow">Optional context</p><h2>Sessions in this goal</h2></div></div>
+      <div className="section-heading"><div><p className="eyebrow">Your progress</p><h2>Sessions in this goal</h2></div></div>
       {sessions.length ? <div className="grid two">{sessions.map((session) => <Link className="card" href={`/sessions/${session.id}`} key={session.id}><span className="pill">{session.type.replaceAll("_", " ")}</span><h3 style={{ margin: "0.9rem 0 0.35rem" }}>{session.title}</h3><p className="subtle">{session.topic}</p><strong>View session →</strong></Link>)}</div> : <p className="notice">No sessions yet. Start one when you are ready.</p>}
     </section>
   </>;
